@@ -1,0 +1,22 @@
+[
+  {
+    "table": "1",
+    "items": [
+      {
+        "id": "demo_burger",
+        "name": "Hamburguesa Doble Smash",
+        "price": 195,
+        "quantity": 1,
+        "note": ""
+      }
+    ],
+    "subtotal": 195,
+    "tax": 31.2,
+    "total": 226.2,
+    "notes": "",
+    "id": "mvt3ym618l240o4ug",
+    "orderNumber": "ORD-7554",
+    "createdAt": 1793252035513,
+    "status": "pending"
+  }
+]

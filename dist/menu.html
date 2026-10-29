@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menú Digital 3D - Explora nuestros platillos</title>
+  <meta name="description" content="Explora nuestro menú interactivo en 3D. Visualiza cada platillo, añade al carrito y haz tu pedido por WhatsApp." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
+  <!-- Anti-flash theme: apply saved theme before first paint -->
+  <script>
+    (function(){
+      var th = localStorage.getItem('menu3d_theme');
+      if (th === 'light') document.documentElement.setAttribute('data-theme','light');
+    })();
+  </script>
+  <script type="module" crossorigin src="/assets/menu-CiCcqlZa.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-B2UDtzXB.js">
+  <link rel="modulepreload" crossorigin href="/assets/audio-CEdIckWR.js">
+  <link rel="stylesheet" crossorigin href="/assets/toast-q5DiEh20.css">
+</head>
+<body>
+  <div class="bg-pattern"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="container flex items-center justify-between w-full">
+      <a href="/" class="navbar-brand">
+        <div class="brand-icon">🍽️</div>
+        <span id="nav-restaurant-name">Menu<span class="text-gradient">3D</span></span>
+      </a>
+      <div class="flex items-center gap-sm">
+        <button class="btn btn-ghost btn-sm" id="btn-theme-toggle" title="Cambiar Tema (Día / Noche)">
+          🌙
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btn-lang-toggle" title="Cambiar Idioma / Switch Language">
+          🇺🇸 EN
+        </button>
+        <button class="btn btn-ghost btn-sm" id="btn-share-table" title="Compartir mesa con acompañantes">
+          👥 Compartir
+        </button>
+        <button class="btn btn-secondary btn-sm" id="btn-call-waiter-nav" title="Llamar al mesero">
+          🛎️ Mesero
+        </button>
+        <span id="nav-table-badge" class="table-number" style="display:none;"></span>
+        <button class="btn btn-ghost btn-sm" id="cart-toggle-mobile" style="display:none;">
+          🛒 <span id="nav-cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Menu Header -->
+  <div class="menu-header container">
+    <h1 id="menu-title">Nuestro Menú</h1>
+    <p class="text-muted" id="menu-subtitle">Explora cada platillo en 3D. Toca para interactuar y ver ingredientes.</p>
+  </div>
+
+  <!-- Search & Dietary Filters -->
+  <div class="container" style="margin-bottom: var(--space-md);">
+    <div class="search-bar-wrapper">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="menu-search-input" placeholder="Buscar platillo o ingrediente (ej: carne, queso, piña...)" />
+      <button id="clear-search-btn" style="display:none;" class="clear-search">✕</button>
+    </div>
+
+    <!-- Dietary Chips -->
+    <div class="dietary-chips" id="dietary-chips" style="margin-top: 10px;">
+      <button class="diet-chip active" data-filter="all">🌟 Todos</button>
+      <button class="diet-chip" data-filter="popular">⭐ Populares</button>
+      <button class="diet-chip" data-filter="meat">🥩 Carnes</button>
+      <button class="diet-chip" data-filter="veg">🌱 Vegetariano</button>
+      <button class="diet-chip" data-filter="gluten-free">🌾 Sin Gluten</button>
+      <button class="diet-chip" data-filter="spicy">🌶️ Picante</button>
+      <button class="diet-chip" data-filter="drink">🥤 Bebidas & Bar</button>
+      <button class="diet-chip" data-filter="sweet">🍰 Postres</button>
+    </div>
+  </div>
+
+  <!-- Category Tabs -->
+  <div class="container">
+    <div class="category-tabs" id="category-tabs">
+      <button class="category-tab active" data-category="all">🍽️ Todas las Categorías</button>
+      <!-- Dynamic categories inserted here -->
+    </div>
+  </div>
+
+  <!-- Menu Content -->
+  <div class="container">
+    <div class="menu-content">
+      <!-- Menu Grid -->
+      <div class="menu-grid" id="menu-grid">
+        <!-- Dynamic menu items -->
+      </div>
+
+      <!-- Cart Sidebar (desktop) -->
+      <aside class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+          <h3>🛒 Tu Pedido</h3>
+          <span class="cart-count" id="cart-count">0</span>
+        </div>
+        <div id="cart-items">
+          <div class="cart-empty">
+            <div class="cart-empty-icon">🛒</div>
+            <p>Tu carrito está vacío</p>
+            <p style="font-size: 0.75rem; margin-top: 4px;">Toca + en los platillos para agregar</p>
+          </div>
+        </div>
+        <div class="cart-summary" id="cart-summary" style="display: none;">
+          <div class="cart-total-row">
+            <span id="cart-label-subtotal">Subtotal</span>
+            <span id="cart-subtotal">$0</span>
+          </div>
+          <div class="cart-total-row">
+            <span id="cart-label-tax">IVA (16%)</span>
+            <span id="cart-tax">$0</span>
+          </div>
+          <div class="cart-total-row total">
+            <span id="cart-label-total">Total</span>
+            <span id="cart-total">$0</span>
+          </div>
+
+          <div class="form-group" style="margin-top: var(--space-md); text-align: left;">
+            <label for="order-general-note" id="cart-label-notes" style="font-size: 0.8125rem; font-weight: 600;">📝 Notas generales (opcional)</label>
+            <textarea id="order-general-note" rows="2" placeholder="Ej: Sin cebolla, término medio, salsas aparte..."></textarea>
+          </div>
+
+          <button class="btn btn-primary w-full" style="margin-top: var(--space-sm);" id="place-order-btn">
+            ✅ Hacer Pedido por WhatsApp
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Mobile Cart Button -->
+  <button class="mobile-cart-btn" id="mobile-cart-btn" style="display: none;">
+    🛒 Ver Pedido (<span id="mobile-cart-count">0</span>) — <span id="mobile-cart-total">$0</span>
+  </button>
+
+  <!-- Floating Assistance FAB (Mesero / Cuenta) -->
+  <div class="assistance-fab-wrapper">
+    <div class="assistance-menu" id="assistance-menu">
+      <button class="assistance-menu-item" id="fab-call-waiter">
+        <span>🙋‍♂️</span>
+        <div>
+          <div>Llamar al Mesero</div>
+          <div style="font-size: 0.6875rem; color: var(--text-muted);">Asistencia en tu mesa</div>
+        </div>
+      </button>
+      <button class="assistance-menu-item" id="fab-request-bill">
+        <span>💳</span>
+        <div>
+          <div>Pedir la Cuenta</div>
+          <div style="font-size: 0.6875rem; color: var(--text-muted);">Efectivo o Tarjeta</div>
+        </div>
+      </button>
+      <button class="assistance-menu-item" id="fab-share-table">
+        <span>👥</span>
+        <div>
+          <div>Compartir Mesa</div>
+          <div style="font-size: 0.6875rem; color: var(--text-muted);">Invitar acompañantes</div>
+        </div>
+      </button>
+    </div>
+    <button class="assistance-fab" id="assistance-fab-btn" title="Asistencia en Mesa">
+      🛎️
+    </button>
+  </div>
+
+  <!-- 3D Viewer Modal -->
+  <div class="viewer-modal" id="viewer-modal">
+    <div class="viewer-backdrop" id="viewer-backdrop"></div>
+    <div class="viewer-container">
+      <div class="viewer-header">
+        <h3 id="viewer-title">Platillo 3D</h3>
+        <button class="viewer-close" id="viewer-close">✕</button>
+      </div>
+      <div class="viewer-canvas-wrapper" id="viewer-canvas">
+        <div class="viewer-hint" id="viewer-hint">
+          <span class="icon">👆</span>
+          Toca la comida para DESARMARLA en capas · Toca un ingrediente para acercar
+        </div>
+        <div class="viewer-controls">
+          <button class="viewer-control-btn btn-explode-pill" id="btn-toggle-explode" title="Desarmar / Armar platillo">💥 Desarmar</button>
+          <button class="viewer-control-btn active" id="btn-toggle-hotspots" title="Ver/Ocultar Indicadores">🏷️ Indicadores</button>
+          <button class="viewer-control-btn active" id="btn-auto-rotate" title="Auto-rotar">🔄</button>
+          <button class="viewer-control-btn" id="btn-ar-view" title="Ver en mi mesa real (AR)">📸 Mesa (AR)</button>
+          <button class="viewer-control-btn" id="btn-reset" title="Reiniciar vista">🏠</button>
+        </div>
+      </div>
+      <!-- Interactive Ingredients Shelf / Thumb-friendly Bar -->
+      <div class="viewer-ingredients-bar-wrapper">
+        <div class="viewer-ingredients-bar-title" id="viewer-ingredients-bar-title">✨ Ingredientes interactivos (toca para ver de cerca):</div>
+        <div class="viewer-ingredients-bar" id="viewer-ingredients-bar"></div>
+      </div>
+      <div class="viewer-details">
+        <div class="viewer-item-info">
+          <div class="flex items-center gap-sm flex-wrap" style="margin-bottom: 4px;">
+            <h4 id="viewer-item-name" style="margin-bottom: 0;">—</h4>
+            <span id="viewer-calories" class="viewer-meta-chip">🔥 0 kcal</span>
+            <span id="viewer-prep-time" class="viewer-meta-chip">⏱️ 15 min</span>
+            <div id="viewer-tags-container" class="flex gap-xs"></div>
+          </div>
+          <p id="viewer-item-desc">—</p>
+        </div>
+        <div class="flex items-center gap-md">
+          <span class="viewer-item-price" id="viewer-item-price">$0</span>
+          <button class="btn btn-primary btn-sm" id="viewer-add-cart">
+            + Agregar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AR Camera Passthrough Modal -->
+  <div class="ar-modal" id="ar-modal">
+    <div class="ar-simulated-table-bg" id="ar-table-bg"></div>
+    <video class="ar-video-feed" id="ar-video" autoplay playsinline muted webkit-playsinline></video>
+    <div class="ar-3d-canvas-container" id="ar-canvas-container"></div>
+    <div class="ar-controls-top">
+      <div class="ar-badge">
+        <span id="ar-status-icon">📸</span> <span id="ar-status-text">AR en Mesa</span> · <span id="ar-dish-name">Platillo</span>
+      </div>
+      <button class="viewer-close" id="ar-close-btn" style="background: rgba(0,0,0,0.6); color: #fff;">✕</button>
+    </div>
+    <div class="ar-controls-bottom">
+      <div class="ar-scale-bar">
+        <button class="ar-scale-btn" data-ar-scale="0.8">0.8x</button>
+        <button class="ar-scale-btn active" data-ar-scale="1.0">1.0x Real</button>
+        <button class="ar-scale-btn" data-ar-scale="1.25">1.2x</button>
+      </div>
+      <p style="color: #fff; font-size: 0.8125rem; text-shadow: 0 2px 4px rgba(0,0,0,0.9); margin-bottom: 4px;">
+        👆 Arrastra y gira con un dedo para ubicar el platillo sobre la mesa
+      </p>
+      <button class="ar-snap-btn" id="ar-snap-btn" title="Tomar Foto">📸</button>
+    </div>
+  </div>
+
+  <!-- Request Bill Modal -->
+  <div class="order-modal" id="bill-modal">
+    <div class="viewer-backdrop" id="bill-backdrop"></div>
+    <div class="order-panel">
+      <div class="order-success" style="padding: var(--space-lg);">
+        <div class="order-success-icon">💳</div>
+        <h3>Pedir la Cuenta</h3>
+        <p class="text-muted" style="margin-bottom: var(--space-md);">¿Cómo deseas realizar el pago?</p>
+
+        <div class="flex flex-direction-column gap-sm" style="text-align: left; margin-bottom: var(--space-lg); display: flex; flex-direction: column;">
+          <label style="padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--color-glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+            <input type="radio" name="payment-method" value="Tarjeta / Datáfono" checked style="width:auto;" />
+            <span>💳 Tarjeta de Crédito / Débito (Datáfono a la mesa)</span>
+          </label>
+          <label style="padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--color-glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+            <input type="radio" name="payment-method" value="Efectivo" style="width:auto;" />
+            <span>💵 Efectivo</span>
+          </label>
+          <label style="padding: 10px 14px; background: rgba(255,255,255,0.05); border: 1px solid var(--color-glass-border); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+            <input type="radio" name="payment-method" value="Transferencia / QR (Nequi/Daviplata)" style="width:auto;" />
+            <span>📱 Transferencia / Código QR</span>
+          </label>
+        </div>
+
+        <button class="btn btn-primary w-full" id="send-bill-whatsapp-btn" style="background: #25D366; border-color: #25D366; font-weight: bold; font-size: 1rem;">
+          📲 Pedir Cuenta por WhatsApp
+        </button>
+        <button class="btn btn-ghost w-full" id="close-bill-btn" style="margin-top: 8px;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Order Success Modal with WhatsApp -->
+  <div class="order-modal" id="order-modal">
+    <div class="viewer-backdrop" id="order-backdrop"></div>
+    <div class="order-panel">
+      <div class="order-success">
+        <div class="order-success-icon">🎉</div>
+        <h3>¡Pedido Realizado con Éxito!</h3>
+        <p class="text-muted" style="margin-bottom: 6px;">Se ha generado tu orden para cocina:</p>
+        <div class="order-number" id="order-number">ORD-0000</div>
+        
+        <div class="card card-glass" style="margin: var(--space-md) 0; padding: var(--space-md); text-align: left; background: rgba(37, 211, 102, 0.08); border-color: rgba(37, 211, 102, 0.3);">
+          <div class="flex items-center gap-sm" style="color: #25d366; font-weight: bold; margin-bottom: 4px;">
+            <span>📲</span> WhatsApp Conectado: 314 684 1042
+          </div>
+          <p class="text-muted" style="font-size: 0.8125rem; margin: 0;">
+            El pedido se envía directamente al WhatsApp del restaurante con tu número de mesa y platillos.
+          </p>
+        </div>
+
+        <a id="order-whatsapp-btn" href="#" target="_blank" class="btn btn-primary w-full" style="background: #25D366; border-color: #25D366; color: #fff; font-weight: bold; font-size: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          📲 Enviar / Abrir en WhatsApp
+        </a>
+
+        <button class="btn btn-secondary w-full" style="margin-top: var(--space-sm);" id="order-done-btn">
+          ✅ Cerrar y seguir viendo el menú
+        </button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

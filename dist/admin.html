@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Panel Admin - Menu3D QR</title>
+  <meta name="description" content="Panel de administración para gestionar el menú digital, fotos, pedidos y configuración." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
+  <script type="module" crossorigin src="/assets/admin-DYvBJvNF.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-B2UDtzXB.js">
+  <link rel="modulepreload" crossorigin href="/assets/audio-CEdIckWR.js">
+  <link rel="stylesheet" crossorigin href="/assets/toast-q5DiEh20.css">
+</head>
+<body>
+  <div class="bg-pattern"></div>
+
+  <div class="admin-layout">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <a href="/" class="navbar-brand" style="margin-bottom: var(--space-sm);">
+        <div class="brand-icon">🍽️</div>
+        <span>Menu<span class="text-gradient">3D</span></span>
+      </a>
+      <p class="label" style="margin-bottom: var(--space-xs);">Panel Admin</p>
+      <div id="ai-status" class="ai-badge" style="margin-bottom: var(--space-lg);">
+        <span class="ai-icon">🤖</span>
+        <span id="ai-status-text">IA</span>
+      </div>
+
+      <ul class="admin-sidebar-nav">
+        <li><a href="#" class="active" data-section="dashboard">📊 Dashboard</a></li>
+        <li><a href="#" data-section="menu">🍽️ Menú</a></li>
+        <li><a href="#" data-section="orders">📋 Pedidos</a></li>
+        <li><a href="#" data-section="qr">📱 Códigos QR</a></li>
+        <li><a href="#" data-section="settings">⚙️ Configuración</a></li>
+      </ul>
+
+      <div style="margin-top: auto; padding-top: var(--space-xl);">
+        <a href="/menu.html" class="btn btn-secondary btn-sm w-full" style="margin-bottom: var(--space-sm);">
+          👁️ Ver Menú
+        </a>
+        <a href="/" class="btn btn-ghost btn-sm w-full">
+          ← Volver al Inicio
+        </a>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-main" id="admin-main">
+
+      <!-- ===== Dashboard Section ===== -->
+      <section id="section-dashboard" class="admin-section">
+        <div class="admin-header">
+          <h1>📊 Dashboard</h1>
+          <span class="text-muted" id="dashboard-date"></span>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--color-primary-glow);">🍽️</div>
+            <div class="stat-value" id="stat-items">0</div>
+            <div class="stat-label">Platillos Activos</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--color-success-bg);">📋</div>
+            <div class="stat-value" id="stat-orders">0</div>
+            <div class="stat-label">Pedidos Hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: var(--color-warning-bg);">💰</div>
+            <div class="stat-value" id="stat-revenue">$0</div>
+            <div class="stat-label">Ventas Hoy</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(139,92,246,0.1);">🏷️</div>
+            <div class="stat-value" id="stat-categories">0</div>
+            <div class="stat-label">Categorías</div>
+          </div>
+        </div>
+
+        <!-- Recent Orders -->
+        <div style="margin-top: var(--space-xl);">
+          <h2 class="heading-md" style="margin-bottom: var(--space-md);">📋 Pedidos Recientes</h2>
+          <div id="recent-orders">
+            <div class="empty-state">
+              <div class="empty-state-icon">📋</div>
+              <h3>Sin pedidos aún</h3>
+              <p class="text-muted">Los pedidos de los clientes aparecerán aquí.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Menu Management Section ===== -->
+      <section id="section-menu" class="admin-section" style="display: none;">
+        <div class="admin-header">
+          <h1>🍽️ Gestión del Menú</h1>
+          <button class="btn btn-primary" id="add-item-btn">+ Agregar Platillo</button>
+        </div>
+
+        <!-- Menu Items Table -->
+        <div class="admin-table-wrapper">
+          <table class="admin-table" id="menu-table">
+            <thead>
+              <tr>
+                <th>Imagen</th>
+                <th>Nombre</th>
+                <th>Categoría</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="menu-table-body">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== Orders Section ===== -->
+      <section id="section-orders" class="admin-section" style="display: none;">
+        <div class="admin-header">
+          <h1>📋 Pedidos</h1>
+          <div class="flex gap-sm items-center flex-wrap">
+            <button class="btn btn-secondary btn-sm" id="btn-test-kitchen-bell" title="Probar sonido de campana de cocina">
+              🔔 Probar Campana
+            </button>
+            <button class="btn btn-ghost btn-sm active" data-order-filter="all">Todos</button>
+            <button class="btn btn-ghost btn-sm" data-order-filter="pending">Pendientes</button>
+            <button class="btn btn-ghost btn-sm" data-order-filter="preparing">En Preparación</button>
+            <button class="btn btn-ghost btn-sm" data-order-filter="completed">Completados</button>
+          </div>
+        </div>
+        <div id="orders-list">
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <h3>No hay pedidos</h3>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== QR Section ===== -->
+      <section id="section-qr" class="admin-section" style="display: none;">
+        <div class="admin-header">
+          <h1>📱 Códigos QR</h1>
+        </div>
+        <div class="card card-glass">
+          <div class="card-body text-center">
+            <p class="text-muted" style="margin-bottom: var(--space-lg);">
+              Genera códigos QR desde la página principal para cada mesa de tu restaurante.
+            </p>
+            <a href="/#qr-generator" class="btn btn-primary btn-lg">📱 Ir al Generador de QR</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Settings Section ===== -->
+      <section id="section-settings" class="admin-section" style="display: none;">
+        <div class="admin-header">
+          <h1>⚙️ Configuración</h1>
+        </div>
+
+        <div class="settings-section">
+          <h3>🏪 Restaurante</h3>
+          <div class="flex gap-md" style="flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+              <label for="cfg-name">Nombre</label>
+              <input type="text" id="cfg-name" placeholder="Mi Restaurante" />
+            </div>
+            <div class="form-group" style="flex: 0 0 120px;">
+              <label for="cfg-currency">Moneda</label>
+              <select id="cfg-currency">
+                <option value="$">$ (MXN/USD)</option>
+                <option value="€">€ (EUR)</option>
+                <option value="£">£ (GBP)</option>
+                <option value="S/.">S/. (PEN)</option>
+                <option value="COP$">COP$ (COP)</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 0 0 120px;">
+              <label for="cfg-tables">Num. Mesas</label>
+              <input type="number" id="cfg-tables" min="1" max="200" />
+            </div>
+          </div>
+
+          <div class="flex gap-md" style="flex-wrap: wrap; margin-top: var(--space-md);">
+            <div class="form-group" style="flex: 1; min-width: 200px;">
+              <label for="cfg-whatsapp">📲 WhatsApp para Pedidos (con código de país)</label>
+              <input type="text" id="cfg-whatsapp" placeholder="573146841042" />
+              <p class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">
+                Los pedidos llegarán automáticamente a este número con el detalle de la mesa y comida.
+              </p>
+            </div>
+            <div class="form-group" style="flex: 1; min-width: 220px;">
+              <label for="cfg-base-url">🌐 URL Base para Códigos QR</label>
+              <input type="text" id="cfg-base-url" placeholder="http://192.168.1.35:3000" />
+              <p class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">
+                IP local Wi-Fi o dominio web público donde estará alojado el menú.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>🤖 Integración IA (Hugging Face)</h3>
+          <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--space-md);">
+            Configura tu API Key de <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face</a> 
+            para habilitar la moderación automática de imágenes y generación de descripciones con IA.
+            Es gratuita con límite de uso.
+          </p>
+          <div class="flex gap-md items-end" style="flex-wrap: wrap;">
+            <div class="form-group" style="flex: 1; min-width: 250px;">
+              <label for="cfg-hf-key">API Key de Hugging Face</label>
+              <input type="password" id="cfg-hf-key" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" />
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <label>&nbsp;</label>
+              <div class="flex gap-sm items-center">
+                <input type="checkbox" id="cfg-ai-enabled" style="width: auto;" />
+                <label for="cfg-ai-enabled" style="text-transform: none; font-size: 0.875rem; cursor: pointer;">Habilitar IA</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-md" style="margin-top: var(--space-lg);">
+          <button class="btn btn-primary" id="save-settings-btn">💾 Guardar Configuración</button>
+          <button class="btn btn-danger" id="reset-data-btn">🗑️ Resetear Datos Demo</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Add/Edit Item Modal -->
+  <div class="admin-modal" id="item-modal">
+    <div class="viewer-backdrop" id="item-modal-backdrop"></div>
+    <div class="admin-modal-panel">
+      <div class="flex justify-between items-center" style="margin-bottom: var(--space-lg);">
+        <h2 class="heading-md" id="item-modal-title">Agregar Platillo</h2>
+        <button class="viewer-close" id="item-modal-close">✕</button>
+      </div>
+
+      <form id="item-form">
+        <input type="hidden" id="item-id" />
+
+        <!-- Image Upload -->
+        <div class="upload-area" id="upload-area">
+          <div class="upload-icon">📸</div>
+          <p>Arrastra una imagen aquí o haz clic para seleccionar</p>
+          <p class="upload-hint">JPG, PNG o WebP · Máx 10MB</p>
+          <input type="file" id="item-image" accept="image/*" style="display: none;" />
+        </div>
+        <div class="upload-preview" id="upload-preview" style="display: none;">
+          <img id="preview-img" src="" alt="Preview" />
+          <button type="button" class="remove-preview" id="remove-preview">✕</button>
+        </div>
+
+        <div id="ai-analysis-result" style="display: none; margin-top: var(--space-md);">
+          <div class="ai-badge" style="padding: var(--space-sm) var(--space-md); font-size: 0.8125rem;">
+            <span class="ai-icon">🤖</span>
+            <span id="ai-analysis-text">Analizando imagen con IA...</span>
+          </div>
+        </div>
+
+        <div style="margin-top: var(--space-lg);">
+          <div class="form-group" style="margin-bottom: var(--space-md);">
+            <label for="item-name">Nombre del Platillo *</label>
+            <input type="text" id="item-name" required placeholder="Ej: Tacos al Pastor" />
+          </div>
+
+          <div class="form-group" style="margin-bottom: var(--space-md);">
+            <label for="item-desc">Descripción</label>
+            <textarea id="item-desc" rows="3" placeholder="Describe el platillo..."></textarea>
+          </div>
+
+          <div class="flex gap-md" style="margin-bottom: var(--space-md);">
+            <div class="form-group" style="flex: 1;">
+              <label for="item-category">Categoría *</label>
+              <select id="item-category" required>
+                <option value="entradas">🥗 Entradas</option>
+                <option value="principales" selected>🍖 Principales</option>
+                <option value="postres">🍰 Postres</option>
+                <option value="bebidas">🥤 Bebidas</option>
+                <option value="cocteles">🍹 Cócteles</option>
+                <option value="especiales">⭐ Especiales</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="item-model-type">Forma / Modelo 3D *</label>
+              <select id="item-model-type" required>
+                <option value="tacos">🌮 Tacos al Pastor</option>
+                <option value="burger" selected>🍔 Hamburguesa Gourmet</option>
+                <option value="pizza">🍕 Pizza Artesanal</option>
+                <option value="ribeye">🥩 Corte Ribeye / Steak</option>
+                <option value="salad">🥗 Ensalada Fresca</option>
+                <option value="drink">🥤 Bebida / Limonada Fría</option>
+                <option value="cocktail">🍹 Cóctel / Margarita</option>
+                <option value="dessert">🍮 Flan Napolitano / Postre</option>
+                <option value="salmon">🐟 Salmón Glaseado</option>
+                <option value="guacamole">🥑 Guacamole con Totopos</option>
+              </select>
+            </div>
+            <div class="form-group" style="flex: 1;">
+              <label for="item-price">Precio *</label>
+              <input type="number" id="item-price" required min="0" step="0.01" placeholder="0.00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="flex gap-md" style="margin-top: var(--space-lg);">
+          <button type="submit" class="btn btn-primary" id="item-submit-btn">
+            ✅ Guardar Platillo
+          </button>
+          <button type="button" class="btn btn-secondary" id="item-cancel-btn">
+            Cancelar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile admin nav -->
+  <nav class="navbar" style="display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; border-top: 1px solid var(--color-glass-border); border-bottom: none;" id="mobile-admin-nav">
+    <div class="container flex justify-between w-full" style="padding: 0;">
+      <button class="btn btn-ghost btn-sm" data-mobile-section="dashboard" style="flex:1;">📊</button>
+      <button class="btn btn-ghost btn-sm" data-mobile-section="menu" style="flex:1;">🍽️</button>
+      <button class="btn btn-ghost btn-sm" data-mobile-section="orders" style="flex:1;">📋</button>
+      <button class="btn btn-ghost btn-sm" data-mobile-section="settings" style="flex:1;">⚙️</button>
+    </div>
+  </nav>
+
+</body>
+</html>

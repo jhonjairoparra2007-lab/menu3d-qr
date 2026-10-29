@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Menu3D QR - Menú Digital Interactivo 3D para Restaurantes</title>
+  <meta name="description" content="Sistema de menú digital con QR, visualización 3D de platillos, moderación con IA y pedidos en línea para restaurantes." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
+  <script type="module" crossorigin src="/assets/main-DhaCWhSv.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-B2UDtzXB.js">
+  <link rel="stylesheet" crossorigin href="/assets/toast-q5DiEh20.css">
+</head>
+<body>
+  <div class="bg-pattern"></div>
+  <div class="bg-grid"></div>
+
+  <!-- Navbar -->
+  <nav class="navbar" id="main-navbar">
+    <div class="container flex items-center justify-between w-full">
+      <a href="/" class="navbar-brand">
+        <div class="brand-icon">🍽️</div>
+        <span>Menu<span class="text-gradient">3D</span> QR</span>
+      </a>
+      <ul class="navbar-nav">
+        <li><a href="/" class="active">Inicio</a></li>
+        <li><a href="/menu.html">Menú Demo</a></li>
+        <li><a href="/admin.html" class="btn btn-secondary btn-sm">⚙️ Admin</a></li>
+      </ul>
+      <button class="mobile-nav-toggle" id="mobile-nav-toggle">☰</button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-content animate-fade-in">
+        <div class="hero-badge">
+          <span class="dot"></span>
+          Plataforma de Menú Digital 3D
+        </div>
+        <h1>
+          Tu menú cobra <span class="text-gradient">vida en 3D</span> con un simple QR
+        </h1>
+        <p>
+          Transforma la experiencia gastronómica de tus clientes. Menú interactivo con visualización 3D, 
+          moderación con IA y sistema de pedidos integrado. Todo desde un código QR.
+        </p>
+        <div class="hero-actions">
+          <a href="#qr-generator" class="btn btn-primary btn-lg">
+            📱 Generar QR
+          </a>
+          <a href="/menu.html" class="btn btn-secondary btn-lg">
+            👁️ Ver Demo
+          </a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-glow"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="container">
+    <div class="text-center" style="margin-bottom: var(--space-xl);">
+      <h2 class="heading-lg">¿Por qué <span class="text-gradient">Menu3D QR</span>?</h2>
+      <p class="text-muted" style="max-width: 500px; margin: var(--space-md) auto;">
+        Todo lo que necesita tu restaurante para digitalizar su menú y aumentar las ventas.
+      </p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>QR Inteligente</h3>
+        <p>Genera códigos QR personalizados por mesa. Tus clientes escanean y acceden al menú al instante.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎮</div>
+        <h3>Visualización 3D</h3>
+        <p>Cada platillo se muestra en un entorno 3D interactivo. Rota, acerca y explora la comida antes de pedir.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>Moderación con IA</h3>
+        <p>Integración con Hugging Face para moderar imágenes automáticamente y generar descripciones inteligentes.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🛒</div>
+        <h3>Pedidos en Línea</h3>
+        <p>Sistema de carrito y pedidos integrado. Desde el QR hasta la cocina sin intermediarios.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚡</div>
+        <h3>Tiempo Real</h3>
+        <p>Los cambios del administrador se reflejan al instante. Actualiza precios, agrega platillos o cambia fotos.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Panel Admin</h3>
+        <p>Dashboard completo para gestionar menú, ver pedidos, configurar mesas y controlar todo tu restaurante.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- QR Generator Section -->
+  <section id="qr-generator" class="qr-section">
+    <div class="container">
+      <div class="text-center" style="margin-bottom: var(--space-xl);">
+        <h2 class="heading-lg">Genera tu <span class="text-gradient">código QR</span></h2>
+        <p class="text-muted">Personaliza y descarga el QR para cada mesa de tu restaurante.</p>
+      </div>
+
+      <div class="qr-generator card card-glass">
+        <div class="card-body">
+          <div class="qr-config">
+            <div class="form-group">
+              <label for="restaurant-name">Nombre del Restaurante</label>
+              <input type="text" id="restaurant-name" placeholder="Mi Restaurante" />
+            </div>
+
+            <div class="form-group" style="margin-bottom: var(--space-md);">
+              <label for="qr-base-url">URL / Servidor del Menú (para escanear desde cualquier red o celular)</label>
+              <input type="text" id="qr-base-url" placeholder="https://tu-proyecto.vercel.app o http://192.168.1.35:3000" />
+              <div class="flex gap-xs items-center flex-wrap" style="margin-top: 6px;">
+                <button type="button" class="btn btn-primary btn-sm" id="btn-use-cloud" style="font-size: 0.75rem; padding: 5px 10px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff;">
+                  ☁️ Servidor Nube / Público (Cualquier Red)
+                </button>
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-use-wifi-ip" style="font-size: 0.75rem; padding: 5px 10px;">
+                  📡 Wi-Fi Local (192.168.1.35:3000)
+                </button>
+              </div>
+              <p class="text-muted" style="font-size: 0.75rem; margin-top: 6px; line-height: 1.4;">
+                🌐 <strong>Acceso desde cualquier red:</strong> Para que cualquier persona escanee el QR desde sus datos móviles o cualquier red Wi-Fi externa, usa tu URL pública o de la nube (con HTTPS también se activa la cámara real en el celular).
+              </p>
+            </div>
+
+            <div class="flex gap-md">
+              <div class="form-group" style="flex:1;">
+                <label for="table-number">Número de Mesa</label>
+                <input type="number" id="table-number" value="1" min="1" max="100" />
+              </div>
+              <div class="form-group" style="flex:1;">
+                <label for="qr-size">Tamaño QR</label>
+                <select id="qr-size">
+                  <option value="256">Normal (256px)</option>
+                  <option value="512" selected>Grande (512px)</option>
+                  <option value="1024">Extra Grande (1024px)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-md justify-center" style="margin-bottom: var(--space-lg);">
+            <button class="btn btn-primary" id="generate-qr-btn">
+              📱 Generar QR
+            </button>
+            <button class="btn btn-secondary" id="download-qr-btn" disabled>
+              ⬇️ Descargar
+            </button>
+          </div>
+
+          <div class="qr-display" id="qr-display">
+            <div class="text-center text-muted" style="font-size: 0.875rem;">
+              <div style="font-size: 3rem; opacity: 0.3; margin-bottom: 8px;">📱</div>
+              Presiona "Generar QR" para crear tu código
+            </div>
+          </div>
+
+          <div class="qr-info">
+            <p class="label" style="margin-bottom: 4px;">URL DEL MENÚ</p>
+            <p id="qr-url" class="text-muted" style="font-size: 0.875rem; word-break: break-all;">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Batch QR Generator -->
+      <div class="text-center" style="margin-top: var(--space-xl);">
+        <p class="text-muted" style="font-size: 0.875rem;">
+          ¿Necesitas QR para varias mesas? 
+        </p>
+        <button class="btn btn-ghost btn-sm" id="batch-qr-btn" style="margin-top: var(--space-sm);">
+          🖨️ Generar QR para todas las mesas
+        </button>
+      </div>
+
+      <!-- ========================================= -->
+      <!-- ADMIN QUICK-ADD: Appears after QR gen     -->
+      <!-- ========================================= -->
+      <div id="admin-quick-add-panel" class="admin-quick-add-panel" style="display: none;">
+        <!-- PIN Gate -->
+        <div id="admin-pin-gate" class="admin-pin-gate">
+          <div class="pin-gate-icon">🔒</div>
+          <h3 class="heading-sm" style="margin-bottom: var(--space-sm);">Acceso Administrador</h3>
+          <p class="text-muted" style="font-size: 0.8125rem; margin-bottom: var(--space-md);">
+            ¿Deseas agregar más productos o fotos antes de imprimir el QR? Ingresa tu PIN de administrador.
+          </p>
+          <div class="flex gap-sm justify-center items-center" style="max-width: 320px; margin: 0 auto;">
+            <input type="password" id="admin-pin-input" maxlength="6" placeholder="PIN Admin" autocomplete="off"
+              style="text-align: center; font-size: 1.25rem; letter-spacing: 8px; flex: 1;" />
+            <button class="btn btn-primary btn-sm" id="admin-pin-submit">
+              🔓 Entrar
+            </button>
+          </div>
+          <p id="admin-pin-error" style="color: var(--color-danger); font-size: 0.75rem; margin-top: 6px; display: none;">
+            PIN incorrecto. Intenta de nuevo.
+          </p>
+        </div>
+
+        <!-- Quick-Add Form (hidden until PIN is correct) -->
+        <div id="admin-quick-form" style="display: none;">
+          <div class="flex items-center gap-sm" style="margin-bottom: var(--space-lg);">
+            <span style="font-size: 1.75rem;">➕</span>
+            <div>
+              <h3 class="heading-sm" style="margin: 0;">Agregar Producto Rápido</h3>
+              <p class="text-muted" style="font-size: 0.75rem; margin: 0;">Los cambios se reflejan inmediatamente en el menú al escanear el QR.</p>
+            </div>
+          </div>
+
+          <form id="quick-add-form" class="quick-add-grid">
+            <!-- Name + Price Row -->
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="quick-item-name">Nombre del Platillo *</label>
+              <input type="text" id="quick-item-name" placeholder="Ej: Tacos al Pastor, Pizza Margherita..." required />
+            </div>
+            <div class="form-group">
+              <label for="quick-item-price">Precio ($) *</label>
+              <input type="number" id="quick-item-price" min="1" step="0.01" placeholder="150" required />
+            </div>
+            <div class="form-group">
+              <label for="quick-item-category">Categoría</label>
+              <select id="quick-item-category">
+                <option value="entradas">🥗 Entradas</option>
+                <option value="principales" selected>🍖 Principales</option>
+                <option value="postres">🍰 Postres</option>
+                <option value="bebidas">🥤 Bebidas</option>
+                <option value="cocteles">🍹 Cócteles</option>
+                <option value="especiales">⭐ Especiales</option>
+              </select>
+            </div>
+
+            <!-- Description -->
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="quick-item-desc">Descripción (opcional)</label>
+              <textarea id="quick-item-desc" rows="2" placeholder="Describe brevemente el platillo..."></textarea>
+            </div>
+
+            <!-- 3D Model Selector -->
+            <div class="form-group">
+              <label for="quick-item-model">Forma 3D</label>
+              <select id="quick-item-model">
+                <option value="burger">🍔 Hamburguesa</option>
+                <option value="tacos">🌮 Tacos</option>
+                <option value="pizza">🍕 Pizza</option>
+                <option value="ribeye">🥩 Corte/Carne</option>
+                <option value="salad">🥗 Ensalada</option>
+                <option value="drink">🥤 Bebida</option>
+                <option value="cocktail">🍹 Cóctel</option>
+                <option value="dessert">🍮 Postre/Flan</option>
+                <option value="salmon">🐟 Salmón/Pescado</option>
+                <option value="guacamole">🥑 Guacamole</option>
+              </select>
+            </div>
+
+            <!-- Image Upload -->
+            <div class="form-group">
+              <label>Foto del Platillo</label>
+              <div id="quick-upload-area" class="quick-upload-area">
+                <input type="file" id="quick-item-image" accept="image/*" style="display:none;" />
+                <div id="quick-upload-placeholder" class="quick-upload-placeholder">
+                  <span style="font-size: 1.5rem;">📸</span>
+                  <span style="font-size: 0.75rem;">Click o arrastra</span>
+                </div>
+                <div id="quick-upload-preview" style="display: none; position: relative;">
+                  <img id="quick-preview-img" style="width: 100%; max-height: 100px; object-fit: cover; border-radius: 8px;" />
+                  <button type="button" id="quick-remove-preview" class="btn btn-ghost btn-sm" style="position: absolute; top: 2px; right: 2px; padding: 2px 6px; font-size: 0.7rem; background: rgba(0,0,0,0.7);">✕</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Submit -->
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <button type="submit" class="btn btn-primary w-full" id="quick-add-submit-btn" style="width: 100%;">
+                ✨ Agregar al Menú y Sincronizar
+              </button>
+            </div>
+          </form>
+
+          <!-- Recently Added Items -->
+          <div id="quick-added-list" style="margin-top: var(--space-lg);"></div>
+
+          <div class="flex gap-sm justify-center" style="margin-top: var(--space-md);">
+            <a href="/admin.html" class="btn btn-secondary btn-sm">⚙️ Abrir Panel Admin Completo</a>
+            <button class="btn btn-ghost btn-sm" id="admin-lock-btn">🔒 Bloquear Acceso</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section style="padding: var(--space-3xl) 0;">
+    <div class="container text-center">
+      <div class="card card-glass" style="padding: var(--space-3xl) var(--space-xl);">
+        <h2 class="heading-lg" style="margin-bottom: var(--space-md);">
+          ¿Listo para <span class="text-gradient">revolucionar</span> tu restaurante?
+        </h2>
+        <p class="text-muted" style="max-width: 480px; margin: 0 auto var(--space-xl);">
+          Empieza ahora con la demo. Configura tu menú, sube tus fotos y genera los QR para cada mesa.
+        </p>
+        <div class="flex gap-md justify-center flex-wrap">
+          <a href="/admin.html" class="btn btn-primary btn-lg">⚙️ Ir al Panel Admin</a>
+          <a href="/menu.html" class="btn btn-secondary btn-lg">👁️ Ver Menú Demo</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer style="padding: var(--space-xl) 0; border-top: 1px solid var(--color-glass-border);">
+    <div class="container flex justify-between items-center" style="flex-wrap: wrap; gap: var(--space-md);">
+      <div class="flex items-center gap-sm">
+        <span style="font-size: 1.5rem;">🍽️</span>
+        <span class="heading-sm">Menu3D QR</span>
+      </div>
+      <p class="text-muted" style="font-size: 0.8125rem;">
+        Sistema de menú digital con visualización 3D y pedidos. Listo para comercializar.
+      </p>
+    </div>
+  </footer>
+
+</body>
+</html>
