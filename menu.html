@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Menú Digital 3D - Explora nuestros platillos</title>
   <meta name="description" content="Explora nuestro menú interactivo en 3D. Visualiza cada platillo, añade al carrito y haz tu pedido por WhatsApp." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
@@ -168,6 +168,7 @@
   <div class="viewer-modal" id="viewer-modal">
     <div class="viewer-backdrop" id="viewer-backdrop"></div>
     <div class="viewer-container">
+      <div class="viewer-sheet-handle"></div>
       <div class="viewer-header">
         <h3 id="viewer-title">Platillo 3D</h3>
         <button class="viewer-close" id="viewer-close">✕</button>
@@ -175,11 +176,10 @@
       <div class="viewer-canvas-wrapper" id="viewer-canvas">
         <div class="viewer-hint" id="viewer-hint">
           <span class="icon">👆</span>
-          Toca la comida para DESARMARLA en capas · Toca un ingrediente para acercar
+          Toca la comida para DESARMARLA en capas · Toca de nuevo para ARMARLA
         </div>
         <div class="viewer-controls">
           <button class="viewer-control-btn btn-explode-pill" id="btn-toggle-explode" title="Desarmar / Armar platillo">💥 Desarmar</button>
-          <button class="viewer-control-btn active" id="btn-toggle-hotspots" title="Ver/Ocultar Indicadores">🏷️ Indicadores</button>
           <button class="viewer-control-btn active" id="btn-auto-rotate" title="Auto-rotar">🔄</button>
           <button class="viewer-control-btn" id="btn-ar-view" title="Ver en mi mesa real (AR)">📸 Mesa (AR)</button>
           <button class="viewer-control-btn" id="btn-reset" title="Reiniciar vista">🏠</button>

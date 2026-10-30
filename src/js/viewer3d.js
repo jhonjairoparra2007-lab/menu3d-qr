@@ -507,28 +507,10 @@ export function initViewer(container) {
       if (currentFoodGroup) {
         const hits = raycaster.intersectObjects(currentFoodGroup.children, true);
         if (hits.length > 0) {
-          if (targetExplode === 0) {
-            // Assembled -> Explode into layers
-            toggleExplodedView();
-          } else {
-            // Exploded -> identify layer tapped
-            let foundCompIndex = -1;
-            for (let i = 0; i < explodedComponents.length; i++) {
-              let match = false;
-              explodedComponents[i].mesh.traverse(child => {
-                if (child === hits[0].object) match = true;
-              });
-              if (match) {
-                foundCompIndex = i;
-                break;
-              }
-            }
-            if (foundCompIndex !== -1 && currentItemData && currentItemData.ingredients) {
-              const ing = currentItemData.ingredients[foundCompIndex] || currentItemData.ingredients[0];
-              focusOnIngredient(foundCompIndex, ing);
-            } else {
-              toggleExplodedView();
-            }
+          // Direct tap on food: Toggle between Exploded and Assembled!
+          toggleExplodedView();
+          if (typeof navigator !== 'undefined' && navigator.vibrate) {
+            try { navigator.vibrate(15); } catch (err) {}
           }
         }
       }
@@ -712,18 +694,19 @@ function createPlate() {
 }
 
 function createParticles() {
-  const count = 60;
+  const count = 48;
   const geo = new THREE.BufferGeometry();
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
 
   for (let i = 0; i < count; i++) {
     const i3 = i * 3;
-    positions[i3] = (Math.random() - 0.5) * 5;
-    positions[i3 + 1] = Math.random() * 3.2;
-    positions[i3 + 2] = (Math.random() - 0.5) * 5;
+    positions[i3] = (Math.random() - 0.5) * 1.5;
+    positions[i3 + 1] = 0.1 + Math.random() * 2.0;
+    positions[i3 + 2] = (Math.random() - 0.5) * 1.5;
 
-    const col = new THREE.Color().setHSL(0.09 + Math.random() * 0.04, 0.85, 0.65);
+    // Warm appetizing steam particles (soft amber/white)
+    const col = new THREE.Color().setHSL(0.11, 0.45, 0.82);
     colors[i3] = col.r;
     colors[i3 + 1] = col.g;
     colors[i3 + 2] = col.b;
@@ -733,10 +716,10 @@ function createParticles() {
   geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
   const mat = new THREE.PointsMaterial({
-    size: 0.03,
+    size: 0.045,
     vertexColors: true,
     transparent: true,
-    opacity: 0.35,
+    opacity: 0.28,
     blending: THREE.AdditiveBlending,
     depthWrite: false,
   });
@@ -1773,6 +1756,7 @@ export function toggleExplodedView() {
   } else {
     targetExplode = 0;
     playAssembleSound();
+    hideIngredientSpotlight();
     resetCamera(false);
     onExplodeCallback?.(false);
     return false;
@@ -1827,6 +1811,9 @@ export function focusOnIngredient(index, ingData = null) {
   }
   focusAnimId = requestAnimationFrame(animateFocus);
 
+  // Show floating ingredient spotlight banner directly on the 3D canvas
+  showIngredientSpotlight(ingData);
+
   const infoDesc = document.getElementById('viewer-item-desc');
   if (infoDesc && ingData) {
     infoDesc.innerHTML = `<span style="color:var(--color-primary-light);font-weight:700;">${ingData.icon || '✨'} ${ingData.name}:</span> ${ingData.desc || 'Ingrediente premium seleccionado para este platillo.'} <button id="btn-focus-reset" style="margin-left:8px;padding:3px 10px;border-radius:12px;background:rgba(245,158,11,0.2);font-size:0.75rem;font-weight:600;color:var(--color-primary-light);border:1px solid rgba(245,158,11,0.5);cursor:pointer;">↩️ Ver todo</button>`;
@@ -1843,6 +1830,36 @@ export function focusOnIngredient(index, ingData = null) {
   document.querySelectorAll('.viewer-ing-chip').forEach((c, idx) => {
     c.classList.toggle('active', idx === index);
   });
+}
+
+function showIngredientSpotlight(ing) {
+  if (!containerElement || !ing) return;
+  let spotlight = containerElement.querySelector('.viewer-ingredient-spotlight');
+  if (!spotlight) {
+    spotlight = document.createElement('div');
+    spotlight.className = 'viewer-ingredient-spotlight';
+    containerElement.appendChild(spotlight);
+  }
+  spotlight.innerHTML = `
+    <span class="spotlight-icon">${ing.icon || '✨'}</span>
+    <div class="spotlight-body">
+      <div class="spotlight-name">${ing.name}</div>
+      <div class="spotlight-desc">${ing.desc || 'Ingrediente fresco y seleccionado.'}</div>
+    </div>
+    <button type="button" class="spotlight-close" title="Cerrar">✕</button>
+  `;
+  spotlight.style.display = 'flex';
+  spotlight.querySelector('.spotlight-close')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideIngredientSpotlight();
+    resetCamera();
+  });
+}
+
+export function hideIngredientSpotlight() {
+  if (!containerElement) return;
+  const spotlight = containerElement.querySelector('.viewer-ingredient-spotlight');
+  if (spotlight) spotlight.style.display = 'none';
 }
 
 /**
@@ -1871,6 +1888,7 @@ export function renderIngredientsShelf(item) {
     chip.title = `Toca para ver ${ing.name} de cerca en 3D`;
     chip.addEventListener('click', (e) => {
       e.stopPropagation();
+      playClickSound();
       focusOnIngredient(i, ing);
     });
     bar.appendChild(chip);
@@ -1878,135 +1896,43 @@ export function renderIngredientsShelf(item) {
 }
 
 /**
- * Setup Non-Intrusive Lateral Indicators (moved to the side so food interaction is 100% unobstructed!)
+ * Setup Clean Lateral Indicators Dock (docked to side, NO dots/pins on the food)
  */
 function setupIngredientsHotspots(item) {
-  if (!hotspotsOverlayElement || !lateralIndicatorsContainer) return;
-  hotspotsOverlayElement.innerHTML = '';
+  if (!lateralIndicatorsContainer) return;
   lateralIndicatorsContainer.innerHTML = '';
   hotspots = [];
 
   const ingredients = item.ingredients || [];
   if (ingredients.length === 0) return;
 
-  const anchorOffsets = [
-    new THREE.Vector3(0.0, 0.38, 0.0),
-    new THREE.Vector3(0.55, 0.15, 0.4),
-    new THREE.Vector3(-0.55, 0.05, 0.3),
-    new THREE.Vector3(0.65, -0.1, -0.35),
-    new THREE.Vector3(-0.6, -0.15, -0.3),
-  ];
-
   ingredients.slice(0, 5).forEach((ing, i) => {
-    const offset = anchorOffsets[i] || new THREE.Vector3(0, 0.2, 0);
-    const comp = explodedComponents[i] || explodedComponents[explodedComponents.length - 1 - i] || null;
-
-    // 1. Sleek lateral indicator chip (docked to side, subtle, translucent, visible yet non-intrusive)
+    // Sleek lateral indicator chip (docked cleanly to the side)
     const lateralChip = document.createElement('button');
     lateralChip.type = 'button';
     lateralChip.className = 'lateral-ing-chip';
-    lateralChip.style.cssText = `
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      padding: 5px 10px;
-      background: rgba(18, 16, 14, 0.42);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(245, 158, 11, 0.22);
-      border-radius: 14px;
-      color: rgba(255, 255, 255, 0.85);
-      font-size: 0.72rem;
-      font-weight: 500;
-      white-space: nowrap;
-      cursor: pointer;
-      pointer-events: auto;
-      transition: all 0.22s ease;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
-      user-select: none;
-    `;
     lateralChip.innerHTML = `
       <span style="font-size: 0.95rem;">${ing.icon || '✨'}</span>
       <span>${ing.name}</span>
     `;
 
-    lateralChip.addEventListener('mouseenter', () => {
-      lateralChip.style.background = 'rgba(28, 24, 20, 0.85)';
-      lateralChip.style.borderColor = 'rgba(245, 158, 11, 0.7)';
-      lateralChip.style.transform = 'translateX(4px)';
-      lateralChip.style.color = '#fff';
-    });
-    lateralChip.addEventListener('mouseleave', () => {
-      lateralChip.style.background = 'rgba(18, 16, 14, 0.42)';
-      lateralChip.style.borderColor = 'rgba(245, 158, 11, 0.22)';
-      lateralChip.style.transform = 'none';
-      lateralChip.style.color = 'rgba(255, 255, 255, 0.85)';
-    });
-
     lateralChip.addEventListener('click', (e) => {
       e.stopPropagation();
+      playClickSound();
       focusOnIngredient(i, ing);
     });
 
     lateralIndicatorsContainer.appendChild(lateralChip);
-
-    // 2. Ultra-subtle 3D micro-pin marker (pointer-events: none! NEVER blocks touch/orbit!)
-    const microPin = document.createElement('div');
-    microPin.className = 'food-micro-pin';
-    microPin.style.cssText = `
-      position: absolute;
-      pointer-events: none;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #f59e0b;
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);
-      transform: translate(-50%, -50%);
-      opacity: 0.55;
-      display: none;
-      transition: opacity 0.2s ease;
-    `;
-
-    hotspotsOverlayElement.appendChild(microPin);
-    hotspots.push({ element: microPin, lateralChip, offset, comp, data: ing });
+    hotspots.push({ lateralChip, data: ing });
   });
 }
 
 function updateHotspotsProjection() {
-  if (!hotspotsVisible || hotspots.length === 0 || !containerElement || !camera) {
-    if (hotspotsOverlayElement) hotspotsOverlayElement.style.display = 'none';
+  if (!hotspotsVisible || !lateralIndicatorsContainer) {
     if (lateralIndicatorsContainer) lateralIndicatorsContainer.style.display = 'none';
     return;
   }
-
-  if (hotspotsOverlayElement) hotspotsOverlayElement.style.display = 'block';
   if (lateralIndicatorsContainer) lateralIndicatorsContainer.style.display = 'flex';
-
-  const width = containerElement.clientWidth;
-  const height = containerElement.clientHeight;
-
-  hotspots.forEach(h => {
-    let screenPos = new THREE.Vector3();
-    if (h.comp && h.comp.mesh) {
-      h.comp.mesh.getWorldPosition(screenPos);
-      screenPos.add(h.offset);
-    } else {
-      screenPos.copy(h.offset);
-    }
-
-    screenPos.project(camera);
-
-    if (screenPos.z > 1.0) {
-      h.element.style.display = 'none';
-      return;
-    }
-
-    const x = (screenPos.x * 0.5 + 0.5) * width;
-    const y = (-screenPos.y * 0.5 + 0.5) * height;
-
-    h.element.style.display = 'block';
-    h.element.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px)`;
-  });
 }
 
 /**
@@ -2133,16 +2059,20 @@ function animate() {
     });
   }
 
-  // Floating particles
+  // Floating warm steam particles
   if (particleSystem) {
     const pos = particleSystem.geometry.attributes.position.array;
     for (let i = 0; i < pos.length; i += 3) {
-      pos[i + 1] += 0.0022;
-      if (pos[i + 1] > 3.2) pos[i + 1] = -0.4;
-      pos[i] += Math.sin(time + i) * 0.0006;
+      pos[i + 1] += 0.0035;
+      if (pos[i + 1] > 2.4) {
+        pos[i + 1] = 0.05;
+        pos[i] = (Math.random() - 0.5) * 1.2;
+        pos[i + 2] = (Math.random() - 0.5) * 1.2;
+      }
+      pos[i] += Math.sin(time * 2 + i) * 0.0008;
     }
     particleSystem.geometry.attributes.position.needsUpdate = true;
-    particleSystem.rotation.y = time * 0.03;
+    particleSystem.rotation.y = time * 0.015;
   }
 
   // Smart auto-rotate: pause during user touch/drag and resume only after 3.5s of stillness
@@ -2203,6 +2133,7 @@ export function resetCamera(animate = true) {
     if (infoDesc) infoDesc.textContent = currentItemData.description || '';
   }
 
+  hideIngredientSpotlight();
   document.querySelectorAll('.lateral-ing-chip').forEach(c => c.classList.remove('active'));
   document.querySelectorAll('.viewer-ing-chip').forEach(c => c.classList.remove('active'));
 }

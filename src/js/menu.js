@@ -184,6 +184,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const title = document.getElementById('menu-title');
   if (title) title.textContent = `${t('table')} ${table}`;
 
+  // Friendly mobile welcome toast when scanned
+  const welcomeMsg = getLang() === 'en'
+    ? `📍 Welcome to Table ${table}! Tap any dish to explore in 3D`
+    : `📍 ¡Bienvenido a la Mesa ${table}! Toca cualquier platillo para interactuar en 3D ✨`;
+  setTimeout(() => showToast(welcomeMsg, 'info'), 700);
+
   // Build category tabs
   buildCategoryTabs(config.categories);
 
@@ -449,7 +455,12 @@ function handleAddToCart(item) {
   renderCart();
   showToast(`${item.name} agregado al pedido`, 'success');
 
-  // Pulse animation on card button
+  // Haptic feedback for mobile phones
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    try { navigator.vibrate(15); } catch (e) {}
+  }
+
+  // Pulse animation on card button and mobile cart pill
   const btn = document.querySelector(`[data-add-id="${item.id}"]`);
   if (btn) {
     btn.style.transform = 'scale(1.35)';
@@ -458,6 +469,12 @@ function handleAddToCart(item) {
       btn.style.transform = '';
       btn.style.background = '';
     }, 250);
+  }
+
+  const mobCart = document.getElementById('mobile-cart-btn');
+  if (mobCart) {
+    mobCart.style.transform = 'scale(1.05)';
+    setTimeout(() => { mobCart.style.transform = ''; }, 200);
   }
 }
 

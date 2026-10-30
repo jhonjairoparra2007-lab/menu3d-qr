@@ -50,7 +50,7 @@ export const translations = {
     addNote: '+ Agregar nota (ej: sin cebolla...)',
 
     // 3D Viewer
-    viewerHint: '👆 Toca la comida para DESARMARLA en capas · Toca un ingrediente para acercar',
+    viewerHint: '👆 Toca la comida para DESARMARLA en capas · Toca de nuevo para ARMARLA',
     btnExplode: '💥 Desarmar',
     btnAssemble: '🍔 Armar',
     btnIndicators: '🏷️ Indicadores',
@@ -146,7 +146,7 @@ export const translations = {
     addNote: '+ Add note (e.g., no onion...)',
 
     // 3D Viewer
-    viewerHint: '👆 Tap the dish to DISASSEMBLE into layers · Tap an ingredient to zoom in',
+    viewerHint: '👆 Tap the dish to EXPLODE into layers · Tap again to ASSEMBLE',
     btnExplode: '💥 Explode',
     btnAssemble: '🍔 Assemble',
     btnIndicators: '🏷️ Indicators',

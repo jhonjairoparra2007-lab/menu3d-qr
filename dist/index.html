@@ -1,15 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Menu3D QR - Menú Digital Interactivo 3D para Restaurantes</title>
-  <meta name="description" content="Sistema de menú digital con QR, visualización 3D de platillos, moderación con IA y pedidos en línea para restaurantes." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
-  <script type="module" crossorigin src="/assets/main-DhaCWhSv.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/toast-B2UDtzXB.js">
-  <link rel="stylesheet" crossorigin href="/assets/toast-q5DiEh20.css">
+  <meta name="description"
+    content="Sistema de menú digital con QR, visualización 3D de platillos, moderación con IA y pedidos en línea para restaurantes." />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
+  <script type="module" crossorigin src="/assets/main-DcZY1fet.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-i2GfW-yM.js">
+  <link rel="stylesheet" crossorigin href="/assets/toast-B1sOJPzu.css">
 </head>
+
 <body>
   <div class="bg-pattern"></div>
   <div class="bg-grid"></div>
@@ -42,7 +46,7 @@
           Tu menú cobra <span class="text-gradient">vida en 3D</span> con un simple QR
         </h1>
         <p>
-          Transforma la experiencia gastronómica de tus clientes. Menú interactivo con visualización 3D, 
+          Transforma la experiencia gastronómica de tus clientes. Menú interactivo con visualización 3D,
           moderación con IA y sistema de pedidos integrado. Todo desde un código QR.
         </p>
         <div class="hero-actions">
@@ -92,7 +96,8 @@
       <div class="feature-card">
         <div class="feature-icon">⚡</div>
         <h3>Tiempo Real</h3>
-        <p>Los cambios del administrador se reflejan al instante. Actualiza precios, agrega platillos o cambia fotos.</p>
+        <p>Los cambios del administrador se reflejan al instante. Actualiza precios, agrega platillos o cambia fotos.
+        </p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">📊</div>
@@ -120,17 +125,22 @@
 
             <div class="form-group" style="margin-bottom: var(--space-md);">
               <label for="qr-base-url">URL / Servidor del Menú (para escanear desde cualquier red o celular)</label>
-              <input type="text" id="qr-base-url" placeholder="https://tu-proyecto.vercel.app o http://192.168.1.35:3000" />
+              <input type="text" id="qr-base-url"
+                placeholder="https://tu-proyecto.vercel.app o http://192.168.1.35:3000" />
               <div class="flex gap-xs items-center flex-wrap" style="margin-top: 6px;">
-                <button type="button" class="btn btn-primary btn-sm" id="btn-use-cloud" style="font-size: 0.75rem; padding: 5px 10px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff;">
+                <button type="button" class="btn btn-primary btn-sm" id="btn-use-cloud"
+                  style="font-size: 0.75rem; padding: 5px 10px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff;">
                   ☁️ Servidor Nube / Público (Cualquier Red)
                 </button>
-                <button type="button" class="btn btn-ghost btn-sm" id="btn-use-wifi-ip" style="font-size: 0.75rem; padding: 5px 10px;">
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-use-wifi-ip"
+                  style="font-size: 0.75rem; padding: 5px 10px;">
                   📡 Wi-Fi Local (192.168.1.35:3000)
                 </button>
               </div>
               <p class="text-muted" style="font-size: 0.75rem; margin-top: 6px; line-height: 1.4;">
-                🌐 <strong>Acceso desde cualquier red:</strong> Para que cualquier persona escanee el QR desde sus datos móviles o cualquier red Wi-Fi externa, usa tu URL pública o de la nube (con HTTPS también se activa la cámara real en el celular).
+                🌐 <strong>Acceso desde cualquier red:</strong> Para que cualquier persona escanee el QR desde sus datos
+                móviles o cualquier red Wi-Fi externa, usa tu URL pública o de la nube (con HTTPS también se activa la
+                cámara real en el celular).
               </p>
             </div>
 
@@ -176,7 +186,7 @@
       <!-- Batch QR Generator -->
       <div class="text-center" style="margin-top: var(--space-xl);">
         <p class="text-muted" style="font-size: 0.875rem;">
-          ¿Necesitas QR para varias mesas? 
+          ¿Necesitas QR para varias mesas?
         </p>
         <button class="btn btn-ghost btn-sm" id="batch-qr-btn" style="margin-top: var(--space-sm);">
           🖨️ Generar QR para todas las mesas
@@ -201,7 +211,8 @@
               🔓 Entrar
             </button>
           </div>
-          <p id="admin-pin-error" style="color: var(--color-danger); font-size: 0.75rem; margin-top: 6px; display: none;">
+          <p id="admin-pin-error"
+            style="color: var(--color-danger); font-size: 0.75rem; margin-top: 6px; display: none;">
             PIN incorrecto. Intenta de nuevo.
           </p>
         </div>
@@ -212,7 +223,8 @@
             <span style="font-size: 1.75rem;">➕</span>
             <div>
               <h3 class="heading-sm" style="margin: 0;">Agregar Producto Rápido</h3>
-              <p class="text-muted" style="font-size: 0.75rem; margin: 0;">Los cambios se reflejan inmediatamente en el menú al escanear el QR.</p>
+              <p class="text-muted" style="font-size: 0.75rem; margin: 0;">Los cambios se reflejan inmediatamente en el
+                menú al escanear el QR.</p>
             </div>
           </div>
 
@@ -271,8 +283,10 @@
                   <span style="font-size: 0.75rem;">Click o arrastra</span>
                 </div>
                 <div id="quick-upload-preview" style="display: none; position: relative;">
-                  <img id="quick-preview-img" style="width: 100%; max-height: 100px; object-fit: cover; border-radius: 8px;" />
-                  <button type="button" id="quick-remove-preview" class="btn btn-ghost btn-sm" style="position: absolute; top: 2px; right: 2px; padding: 2px 6px; font-size: 0.7rem; background: rgba(0,0,0,0.7);">✕</button>
+                  <img id="quick-preview-img"
+                    style="width: 100%; max-height: 100px; object-fit: cover; border-radius: 8px;" />
+                  <button type="button" id="quick-remove-preview" class="btn btn-ghost btn-sm"
+                    style="position: absolute; top: 2px; right: 2px; padding: 2px 6px; font-size: 0.7rem; background: rgba(0,0,0,0.7);">✕</button>
                 </div>
               </div>
             </div>
@@ -329,4 +343,5 @@
   </footer>
 
 </body>
+
 </html>
