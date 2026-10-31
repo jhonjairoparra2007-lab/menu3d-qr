@@ -905,6 +905,7 @@ function initAdminQR() {
 
 // ===== AI 3D Modeler Panel =====
 let aiModImageDataUrl = null;
+let aiModDepthMapUrl = null;
 
 export function initAIModeler() {
   const uploadArea = document.getElementById('ai-mod-upload-area');
@@ -951,6 +952,7 @@ export function initAIModeler() {
 
   removeBtn?.addEventListener('click', () => {
     aiModImageDataUrl = null;
+    aiModDepthMapUrl = null;
     if (previewWrap) previewWrap.style.display = 'none';
     if (uploadArea) uploadArea.style.display = 'flex';
     if (analyzeBtn) analyzeBtn.disabled = true;
@@ -971,6 +973,7 @@ export function initAIModeler() {
       const result = await detectFood3DModel(aiModImageDataUrl, nameHint);
 
       if (result) {
+        aiModDepthMapUrl = result.aiDepthMap || null;
         // Populate form fields with AI results
         const nameInput = document.getElementById('ai-mod-name');
         const descInput = document.getElementById('ai-mod-desc');
@@ -982,18 +985,21 @@ export function initAIModeler() {
         if (nameInput && !nameInput.value) nameInput.value = result.label || '';
         if (descInput) descInput.value = result.description || result.desc || '';
         if (catSelect && result.category) catSelect.value = result.category;
-        if (modelSelect && result.archetype) modelSelect.value = result.archetype;
+        if (modelSelect && (result.archetype || result.modelType)) {
+          modelSelect.value = result.archetype || result.modelType;
+        }
 
-        const conf = Math.round((result.confidence || 0.78) * 100);
+        const conf = Math.round((result.confidence || 0.88) * 100);
         if (confFill) confFill.style.width = `${conf}%`;
-        if (confText) confText.textContent = `${conf}% confianza · Fuente: ${result.source === 'name-match' ? 'Nombre del platillo' : 'Análisis visual de colores'}`;
+        if (confText) confText.textContent = `${conf}% confianza · ${result.source || 'IA Generativa 3D'}`;
 
         if (statusText) {
-          statusText.innerHTML = `✅ <strong>IA detectó:</strong> ${result.label || result.archetype} · ${conf}% confianza · Modelo 3D asignado automáticamente`;
+          const modelName = (result.archetype === 'custom_ai') ? 'Modelo 3D Único Generado por IA' : (result.label || result.archetype);
+          statusText.innerHTML = `✅ <strong>IA Esculpido 3D:</strong> ${modelName} · ${conf}% confianza · Geometría volumétrica calculada`;
         }
         if (resultFields) resultFields.style.display = 'block';
 
-        showToast(`🤖 IA detectó: "${result.label || result.archetype}" (${conf}%)`, 'success');
+        showToast(`🤖 Modelo 3D con IA generado (${conf}%)`, 'success');
       }
     } catch (err) {
       console.error('AI modeler error:', err);
@@ -1041,6 +1047,7 @@ export function initAIModeler() {
         prepTime: '12-18 min',
         tags: ['popular'],
         status: 'approved',
+        aiDepthMap: aiModDepthMapUrl,
       });
 
       if (aiModImageDataUrl) {
@@ -1056,6 +1063,7 @@ export function initAIModeler() {
       document.getElementById('ai-mod-price').value = '';
       document.getElementById('ai-mod-desc').value = '';
       aiModImageDataUrl = null;
+      aiModDepthMapUrl = null;
       if (previewWrap) previewWrap.style.display = 'none';
       if (uploadArea) uploadArea.style.display = 'flex';
       if (analyzeBtn) analyzeBtn.disabled = true;

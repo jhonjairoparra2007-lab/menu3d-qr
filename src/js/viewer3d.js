@@ -867,6 +867,9 @@ function createProceduralFoodModel(type, item) {
   explodedComponents = [];
 
   switch (type) {
+    case 'custom_ai':
+      buildCustomAIFoodModel(group, item, currentImageData);
+      break;
     case 'burger':
       buildBurgerModel(group);
       break;
@@ -898,10 +901,260 @@ function createProceduralFoodModel(type, item) {
       buildGuacamoleModel(group);
       break;
     default:
-      buildBurgerModel(group);
+      if (currentImageData || item?.image || item?.imageData || item?.aiDepthMap) {
+        buildCustomAIFoodModel(group, item, currentImageData);
+      } else {
+        buildBurgerModel(group);
+      }
   }
 
   return group;
+}
+
+// ==========================================
+// 0. MODELO 3D ÚNICO ESCULPIDO POR IA (VOLUMÉTRICO PBR)
+// ==========================================
+function buildCustomAIFoodModel(group, item, imageDataUrl) {
+  const photoUrl = imageDataUrl || item?.image || item?.imageData || null;
+  const depthMapUrl = item?.aiDepthMap || null;
+
+  // 1. Ceramic presentation plate with metallic gold rim
+  const plateGroup = new THREE.Group();
+  const plateMat = new THREE.MeshPhysicalMaterial({
+    color: 0x181614,
+    roughness: 0.16,
+    metalness: 0.08,
+    clearcoat: 0.88,
+    clearcoatRoughness: 0.12,
+  });
+  const plateGeo = new THREE.CylinderGeometry(1.22, 1.05, 0.08, 48);
+  const plate = new THREE.Mesh(plateGeo, plateMat);
+  plate.position.y = -0.34;
+  plate.castShadow = true;
+  plate.receiveShadow = true;
+  plateGroup.add(plate);
+
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.28, metalness: 0.85 });
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(1.21, 0.014, 8, 48), rimMat);
+  rim.position.y = -0.30;
+  rim.rotation.x = Math.PI / 2;
+  plateGroup.add(rim);
+
+  group.add(plateGroup);
+  registerComponent(plateGroup, 0, -0.75);
+
+  // 2. Layer 1: Base / Cama Artesanal (Guarnición / Salsa / Base de plato)
+  const baseGroup = new THREE.Group();
+  const baseMat = new THREE.MeshStandardMaterial({
+    color: 0x3d2714,
+    roughness: 0.72,
+    side: THREE.DoubleSide,
+  });
+  const baseBed = new THREE.Mesh(new THREE.CylinderGeometry(0.88, 0.94, 0.07, 36), baseMat);
+  baseBed.position.y = -0.26;
+  baseBed.castShadow = true;
+  baseGroup.add(baseBed);
+
+  // Garnish sauce drops around base perimeter
+  const swirlMat = new THREE.MeshPhysicalMaterial({
+    color: 0xb45309,
+    roughness: 0.15,
+    clearcoat: 0.95,
+    clearcoatRoughness: 0.1,
+  });
+  for (let s = 0; s < 8; s++) {
+    const angle = (s / 8) * Math.PI * 2;
+    const drop = new THREE.Mesh(new THREE.SphereGeometry(0.042, 12, 12), swirlMat);
+    drop.scale.set(1.4, 0.4, 1.0);
+    drop.position.set(Math.cos(angle) * 0.95, -0.28, Math.sin(angle) * 0.95);
+    baseGroup.add(drop);
+  }
+
+  group.add(baseGroup);
+  registerComponent(baseGroup, 0, -0.35);
+
+  // 3. Layer 2: Cuerpo Principal 3D Volumétrico Esculpido con Relieve IA
+  const foodGroup = new THREE.Group();
+  const gridSize = 64;
+  const foodGeo = new THREE.PlaneGeometry(1.7, 1.7, gridSize, gridSize);
+  foodGeo.rotateX(-Math.PI / 2);
+
+  const heightGrid = createFoodHeightMatrix(depthMapUrl, photoUrl, gridSize + 1);
+
+  const pos = foodGeo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const vx = pos.getX(i);
+    const vz = pos.getZ(i);
+
+    const u = Math.min(1, Math.max(0, (vx + 0.85) / 1.7));
+    const v = Math.min(1, Math.max(0, (vz + 0.85) / 1.7));
+
+    const gx = Math.min(gridSize, Math.floor(u * gridSize));
+    const gy = Math.min(gridSize, Math.floor(v * gridSize));
+    const rawHeight = heightGrid[gy * (gridSize + 1) + gx];
+
+    const r = Math.hypot(vx, vz) / 0.82;
+    const falloff = Math.pow(Math.max(0, 1.0 - Math.min(1.0, r)), 1.15);
+
+    const vy = (rawHeight * 0.48 + 0.04) * falloff;
+    pos.setY(i, vy - 0.12);
+  }
+  foodGeo.computeVertexNormals();
+
+  let foodMat;
+  if (photoUrl) {
+    const loader = new THREE.TextureLoader();
+    const tex = loader.load(photoUrl);
+    tex.generateMipmaps = true;
+    tex.minFilter = THREE.LinearMipmapLinearFilter;
+
+    foodMat = new THREE.MeshPhysicalMaterial({
+      map: tex,
+      roughness: 0.32,
+      metalness: 0.04,
+      clearcoat: 0.88,
+      clearcoatRoughness: 0.18,
+      reflectivity: 0.78,
+      side: THREE.DoubleSide,
+    });
+  } else {
+    const fallbackTex = createProceduralCulinaryTexture();
+    foodMat = new THREE.MeshPhysicalMaterial({
+      map: fallbackTex,
+      roughness: 0.36,
+      clearcoat: 0.78,
+      clearcoatRoughness: 0.22,
+      side: THREE.DoubleSide,
+    });
+  }
+
+  const foodMesh = new THREE.Mesh(foodGeo, foodMat);
+  foodMesh.castShadow = true;
+  foodMesh.receiveShadow = true;
+  foodGroup.add(foodMesh);
+
+  // 3D Solid Volumetric Skirt wall connecting top mesh to base
+  const skirtMat = new THREE.MeshStandardMaterial({
+    color: 0x3d1f0d,
+    roughness: 0.75,
+  });
+  const skirtGeo = new THREE.CylinderGeometry(0.85, 0.86, 0.16, 48, 1, true);
+  const skirt = new THREE.Mesh(skirtGeo, skirtMat);
+  skirt.position.y = -0.19;
+  skirt.castShadow = true;
+  foodGroup.add(skirt);
+
+  group.add(foodGroup);
+  registerComponent(foodGroup, 0, 0.08);
+
+  // 4. Layer 3: Topping Gourmet / Glaseado PBR & Microgreens
+  const garnishGroup = new THREE.Group();
+  const herbMat = new THREE.MeshPhysicalMaterial({
+    color: 0x1f7a28,
+    roughness: 0.35,
+    clearcoat: 0.75,
+    side: THREE.DoubleSide,
+  });
+
+  for (let h = 0; h < 8; h++) {
+    const angle = (h / 8) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+    const r = 0.08 + Math.random() * 0.25;
+    const leaf = new THREE.Mesh(new THREE.PlaneGeometry(0.12, 0.08, 2, 2), herbMat);
+    leaf.position.set(Math.cos(angle) * r, 0.28 + Math.random() * 0.06, Math.sin(angle) * r);
+    leaf.rotation.set(-Math.PI / 2 + (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.8, Math.random() * Math.PI);
+    leaf.castShadow = true;
+    garnishGroup.add(leaf);
+  }
+
+  const spiceMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.35 });
+  for (let s = 0; s < 28; s++) {
+    const r = Math.random() * 0.40;
+    const theta = Math.random() * Math.PI * 2;
+    const spec = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.012, 0.018), spiceMat);
+    spec.position.set(Math.cos(theta) * r, 0.26 + Math.random() * 0.04, Math.sin(theta) * r);
+    spec.rotation.set(Math.random(), Math.random(), Math.random());
+    garnishGroup.add(spec);
+  }
+
+  group.add(garnishGroup);
+  registerComponent(garnishGroup, 0, 0.68);
+}
+
+function createFoodHeightMatrix(depthMapUrl, photoUrl, count) {
+  const grid = new Float32Array(count * count);
+  const cx = count / 2;
+  const cy = count / 2;
+  const maxR = count * 0.48;
+
+  const targetUrl = depthMapUrl || photoUrl;
+  if (targetUrl) {
+    try {
+      const img = new Image();
+      img.src = targetUrl;
+      if (img.complete && img.naturalWidth > 0) {
+        const canvas = document.createElement('canvas');
+        canvas.width = count;
+        canvas.height = count;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, count, count);
+        const data = ctx.getImageData(0, 0, count, count).data;
+        for (let y = 0; y < count; y++) {
+          for (let x = 0; x < count; x++) {
+            const idx = (y * count + x) * 4;
+            const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+            const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            const dist = Math.hypot(x - cx, y - cy);
+            const normDist = Math.min(1.0, dist / maxR);
+            const mound = Math.pow(Math.max(0, Math.cos(normDist * Math.PI * 0.5)), 1.25);
+            grid[y * count + x] = mound * 0.65 + lum * mound * 0.35;
+          }
+        }
+        return grid;
+      }
+    } catch (e) {
+      console.warn('Sync height matrix extraction fallback:', e);
+    }
+  }
+
+  for (let y = 0; y < count; y++) {
+    for (let x = 0; x < count; x++) {
+      const dist = Math.hypot(x - cx, y - cy);
+      const normDist = Math.min(1.0, dist / maxR);
+      const mound = Math.pow(Math.max(0, Math.cos(normDist * Math.PI * 0.5)), 1.25);
+      const ripple = Math.sin(x * 0.35) * Math.cos(y * 0.35) * 0.08;
+      grid[y * count + x] = Math.max(0, mound + ripple * mound);
+    }
+  }
+  return grid;
+}
+
+function createProceduralCulinaryTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+
+  const grad = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);
+  grad.addColorStop(0, '#ea580c');
+  grad.addColorStop(0.3, '#d97706');
+  grad.addColorStop(0.7, '#78350f');
+  grad.addColorStop(1, '#451a03');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  const id = ctx.getImageData(0, 0, 512, 512);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const n = (Math.random() - 0.5) * 22;
+    d[i] = Math.max(0, Math.min(255, d[i] + n));
+    d[i + 1] = Math.max(0, Math.min(255, d[i + 1] + n * 0.8));
+    d[i + 2] = Math.max(0, Math.min(255, d[i + 2] + n * 0.4));
+  }
+  ctx.putImageData(id, 0, 0);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.generateMipmaps = true;
+  return tex;
 }
 
 // ==========================================

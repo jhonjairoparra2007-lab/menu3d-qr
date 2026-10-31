@@ -334,6 +334,11 @@ export function detectModelType(name = '', category = '') {
 
 export function getDefaultIngredients(modelType) {
   const map = {
+    custom_ai: [
+      { name: 'Base & Acompañamiento 3D', desc: 'Guarnición, cama de salsa o base artesanal', icon: '🍽️' },
+      { name: 'Cuerpo Principal Esculpido', desc: 'Ingredientes principales modelados con relieve IA y PBR', icon: '✨' },
+      { name: 'Topping & Glaseado Gourmet', desc: 'Aderezo, microgreens o acabado superior brillante', icon: '🌿' }
+    ],
     tacos: [
       { name: 'Tortillas de Maíz & Limón', desc: 'Doble tortilla hecha a mano con limón criollo', icon: '🌽' },
       { name: 'Carne al Pastor Marinada', desc: 'Marinado tradicional 24h en achiote y especias', icon: '🥩' },
