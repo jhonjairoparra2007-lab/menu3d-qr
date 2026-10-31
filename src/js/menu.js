@@ -35,6 +35,7 @@ let currentSearchQuery = '';
 let currentViewerItem = null;
 let currentTable = '1';
 let currentTheme = localStorage.getItem('menu3d_theme') || 'dark';
+let currentTipPercent = 10;
 
 function applyTheme(theme) {
   currentTheme = theme;
@@ -330,7 +331,7 @@ async function renderMenuGrid() {
     });
   }
 
-  // Filter by dietary chips
+  // Filter by dietary & allergen chips
   if (currentDietFilter === 'popular') {
     items = items.filter(i => ['demo_1', 'demo_burger', 'demo_7', 'demo_pizza'].includes(i.id) || (i.tags || []).includes('popular'));
   } else if (currentDietFilter === 'meat') {
@@ -339,6 +340,10 @@ async function renderMenuGrid() {
     items = items.filter(i => ['entradas', 'salad', 'guacamole'].includes(i.category) || ['salad', 'guacamole'].includes(i.modelType) || (i.tags || []).includes('veg'));
   } else if (currentDietFilter === 'gluten-free') {
     items = items.filter(i => (i.tags || []).includes('gluten-free') || ['tacos', 'salad', 'guacamole', 'cocktail', 'drink', 'ribeye'].includes(i.modelType));
+  } else if (currentDietFilter === 'dairy-free') {
+    items = items.filter(i => (i.tags || []).includes('dairy-free') || ['tacos', 'salad', 'guacamole', 'salmon', 'ribeye', 'drink', 'cocktail'].includes(i.modelType));
+  } else if (currentDietFilter === 'seafood') {
+    items = items.filter(i => (i.tags || []).includes('seafood') || ['salmon'].includes(i.modelType));
   } else if (currentDietFilter === 'spicy') {
     items = items.filter(i => (i.tags || []).includes('spicy') || ['tacos'].includes(i.modelType));
   } else if (currentDietFilter === 'drink') {
@@ -397,6 +402,9 @@ async function renderMenuGrid() {
     }
     if ((item.tags || []).includes('gluten-free') || ['tacos', 'salad', 'guacamole', 'ribeye'].includes(item.modelType)) {
       tagsHtml += `<span class="item-badge-pill gluten-free">🌾 ${t('tagGlutenFree')}</span>`;
+    }
+    if (['tacos', 'salad', 'guacamole', 'salmon', 'ribeye', 'drink', 'cocktail'].includes(item.modelType)) {
+      tagsHtml += `<span class="item-badge-pill" style="background:rgba(59,130,246,0.12); color:#60a5fa; border:1px solid rgba(59,130,246,0.25);">🥛 Sin Lactosa</span>`;
     }
     if ((item.tags || []).includes('veg') || ['salad', 'guacamole', 'dessert'].includes(item.modelType)) {
       tagsHtml += `<span class="item-badge-pill veg">🌱 ${t('tagVegan')}</span>`;
@@ -595,10 +603,28 @@ async function renderCart() {
   if (cartSummaryEl) {
     const subtotal = getCartTotal(cart);
     const tax = subtotal * 0.16;
-    const total = subtotal + tax;
+    const tipAmount = subtotal * (currentTipPercent / 100);
+    const total = subtotal + tax + tipAmount;
 
     document.getElementById('cart-subtotal').textContent = `${config.currency}${subtotal.toFixed(2)}`;
     document.getElementById('cart-tax').textContent = `${config.currency}${tax.toFixed(2)}`;
+
+    const tipAmountEl = document.getElementById('cart-tip-amount');
+    if (tipAmountEl) tipAmountEl.textContent = `${config.currency}${tipAmount.toFixed(2)}`;
+
+    const tipRow = document.getElementById('cart-tip-row');
+    const tipPctEl = document.getElementById('cart-tip-percent');
+    const tipEl = document.getElementById('cart-tip');
+    if (tipRow) {
+      if (currentTipPercent > 0) {
+        tipRow.style.display = 'flex';
+        if (tipPctEl) tipPctEl.textContent = `${currentTipPercent}%`;
+        if (tipEl) tipEl.textContent = `${config.currency}${tipAmount.toFixed(2)}`;
+      } else {
+        tipRow.style.display = 'none';
+      }
+    }
+
     document.getElementById('cart-total').textContent = `${config.currency}${total.toFixed(2)}`;
 
     if (mobileCartTotal) mobileCartTotal.textContent = `${config.currency}${total.toFixed(2)}`;
@@ -778,7 +804,8 @@ function placeOrder() {
 
   const subtotal = getCartTotal(cart);
   const tax = subtotal * 0.16;
-  const total = subtotal + tax;
+  const tipAmount = subtotal * (currentTipPercent / 100);
+  const total = subtotal + tax + tipAmount;
   const generalNote = document.getElementById('order-general-note')?.value.trim() || '';
 
   const order = saveOrder({
@@ -792,6 +819,8 @@ function placeOrder() {
     })),
     subtotal,
     tax,
+    tip: tipAmount,
+    tipPercent: currentTipPercent,
     total,
     notes: generalNote,
   });
@@ -823,6 +852,9 @@ function placeOrder() {
   waText += `━━━━━━━━━━━━━━━━━━━━\n`;
   waText += `💵 *Subtotal:* ${config.currency}${subtotal.toFixed(2)}\n`;
   waText += `🧾 *IVA (16%):* ${config.currency}${tax.toFixed(2)}\n`;
+  if (currentTipPercent > 0) {
+    waText += `💝 *Propina voluntaria (${currentTipPercent}%):* ${config.currency}${tipAmount.toFixed(2)}\n`;
+  }
   waText += `💰 *TOTAL A PAGAR:* ${config.currency}${total.toFixed(2)}\n`;
   waText += `━━━━━━━━━━━━━━━━━━━━\n`;
   waText += `✅ _Pedido enviado desde el Menú Digital 3D_\n`;
@@ -1054,6 +1086,22 @@ function setupEventListeners() {
     if (currentViewerItem) {
       handleAddToCart(currentViewerItem);
     }
+  });
+
+  // Tip Buttons (Propina)
+  document.querySelectorAll('.tip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentTipPercent = parseInt(btn.dataset.tip) || 0;
+      playClickSound();
+      renderCart();
+      if (currentTipPercent > 0) {
+        showToast(`Propina del ${currentTipPercent}% seleccionada 💝`, 'info');
+      } else {
+        showToast('Sin propina seleccionada', 'info');
+      }
+    });
   });
 
   // Place order

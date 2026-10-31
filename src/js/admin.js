@@ -12,6 +12,7 @@ import {
   seedDemoData, listenForSync,
   initialSyncFromServer, syncConfigToServer, syncMenuToServer,
   getDefaultIngredients,
+  syncOrdersFromServer,
 } from './storage.js';
 import { analyzeImage, getAIStatusText, validateHFApiKey, detectFood3DModel } from './ai.js';
 import { showToast } from './toast.js';
@@ -21,6 +22,29 @@ let currentSection = 'dashboard';
 let currentEditingId = null;
 let currentImageDataUrl = null;
 let activeOrderFilter = 'all';
+let kitchenSoundEnabled = localStorage.getItem('menu3d_kitchen_sound') !== 'false';
+
+function triggerKitchenAlert(order) {
+  if (kitchenSoundEnabled) {
+    playKitchenBellSound();
+  }
+
+  // Show top kitchen alert banner
+  const banner = document.getElementById('kitchen-alert-banner');
+  const title = document.getElementById('kitchen-alert-title');
+  const body = document.getElementById('kitchen-alert-body');
+
+  if (banner && title && body) {
+    title.textContent = `🔔 ¡NUEVO PEDIDO DE COCINA! Mesa ${order.table || '0'} — ${order.orderNumber}`;
+    const itemsText = (order.items || []).map(i => `${i.quantity}x ${i.name}`).join(', ');
+    body.textContent = `${itemsText} · Total: ${order.total ? '$' + order.total.toFixed(2) : ''}`;
+    banner.style.display = 'block';
+  }
+
+  showToast(`🔔 ¡Nuevo pedido para cocina! Mesa ${order.table || 'Sin mesa'} (${order.orderNumber})`, 'success');
+  refreshDashboard();
+  if (currentSection === 'orders') renderOrders();
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   // Sync latest menu, config and orders from server for cross-device consistency
@@ -40,10 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Listen for real-time updates (cross-tab sync)
   listenForSync((data) => {
     if (data.type === 'new-order') {
-      playKitchenBellSound();
-      showToast(`🔔 ¡Nuevo pedido para cocina! Mesa ${data.order.table || 'Sin mesa'} (${data.order.orderNumber})`, 'success');
-      refreshDashboard();
-      if (currentSection === 'orders') renderOrders();
+      triggerKitchenAlert(data.order);
     } else if (data.type === 'menu-update') {
       if (currentSection === 'menu') renderMenuTable();
       refreshDashboard();
@@ -51,6 +72,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (currentSection === 'settings') loadSettings();
     }
   });
+
+  // Cross-device order polling (every 4 seconds)
+  let lastKnownOrderCount = getOrders().length;
+  setInterval(async () => {
+    try {
+      const orders = await syncOrdersFromServer();
+      if (orders && Array.isArray(orders) && orders.length > lastKnownOrderCount) {
+        const newOrders = orders.slice(0, orders.length - lastKnownOrderCount);
+        lastKnownOrderCount = orders.length;
+        triggerKitchenAlert(newOrders[0]);
+      }
+    } catch (e) {
+      // Quiet fail if network glitch
+    }
+  }, 4000);
 });
 
 // ===== Navigation =====
@@ -554,6 +590,44 @@ async function renderMenuTable() {
 
 // ===== Orders Management =====
 function initOrdersManagement() {
+  // Kitchen alert banner actions
+  document.getElementById('btn-kitchen-alert-view')?.addEventListener('click', () => {
+    switchSection('orders');
+    const banner = document.getElementById('kitchen-alert-banner');
+    if (banner) banner.style.display = 'none';
+  });
+
+  document.getElementById('btn-kitchen-alert-dismiss')?.addEventListener('click', () => {
+    const banner = document.getElementById('kitchen-alert-banner');
+    if (banner) banner.style.display = 'none';
+  });
+
+  // Sound toggle button
+  const soundBtn = document.getElementById('btn-toggle-kitchen-sound');
+  const updateSoundBtn = () => {
+    if (!soundBtn) return;
+    if (kitchenSoundEnabled) {
+      soundBtn.textContent = '🔊 Campana: Activada';
+      soundBtn.className = 'btn btn-primary btn-sm';
+    } else {
+      soundBtn.textContent = '🔇 Campana: Silenciada';
+      soundBtn.className = 'btn btn-ghost btn-sm';
+    }
+  };
+  updateSoundBtn();
+
+  soundBtn?.addEventListener('click', () => {
+    kitchenSoundEnabled = !kitchenSoundEnabled;
+    localStorage.setItem('menu3d_kitchen_sound', kitchenSoundEnabled ? 'true' : 'false');
+    updateSoundBtn();
+    if (kitchenSoundEnabled) {
+      playKitchenBellSound();
+      showToast('Timbre de campana de cocina activado 🔔', 'success');
+    } else {
+      showToast('Campana silenciada 🔇', 'info');
+    }
+  });
+
   document.getElementById('btn-test-kitchen-bell')?.addEventListener('click', () => {
     playKitchenBellSound();
     showToast('🔔 Campana de cocina probada con éxito', 'info');

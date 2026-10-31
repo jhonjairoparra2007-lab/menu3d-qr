@@ -147,44 +147,62 @@ export function playAssembleSound() {
 
 /**
  * Authentic Kitchen Service Bell (Campana de cocina / timbre de comanda)
- * High-pitch metallic strike with shimmering harmonic decay
+ * High-pitch brass strike with realistic metallic harmonics and warm decay
  */
 export function playKitchenBellSound() {
   const ctx = getAudioContext();
   if (!ctx) return;
 
-  const strikes = [0, 0.14]; // Double crisp ring "ding-ding!"
+  const strikes = [0, 0.15]; // Classic double crisp strike "DING-DING!"
   strikes.forEach(delay => {
     const now = ctx.currentTime + delay;
 
-    // Fundamental tone
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(2093, now); // C7
+    // Harmonic partial frequencies characteristic of a brass counter bell
+    const harmonics = [
+      { freq: 2093.00, gain: 0.45, decay: 1.5, type: 'sine' },      // Fundamental (C7)
+      { freq: 2793.83, gain: 0.25, decay: 1.1, type: 'sine' },      // Fourth harmonic (F7)
+      { freq: 3520.00, gain: 0.20, decay: 0.8, type: 'sine' },      // Minor sixth (A7)
+      { freq: 4186.01, gain: 0.18, decay: 0.6, type: 'triangle' },  // Octave harmonic shimmer (C8)
+    ];
 
-    gain1.gain.setValueAtTime(0.35, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    harmonics.forEach(h => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
+      osc.type = h.type;
+      osc.frequency.setValueAtTime(h.freq, now);
 
-    osc1.start(now);
-    osc1.stop(now + 1.2);
+      gain.gain.setValueAtTime(h.gain, now);
+      gain.gain.exponentialRampToValueAtTime(0.0005, now + h.decay);
 
-    // Metallic overtone (shimmer)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(4186, now); // C8
+      osc.connect(gain);
+      gain.connect(ctx.destination);
 
-    gain2.gain.setValueAtTime(0.15, now);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.start(now);
+      osc.stop(now + h.decay);
+    });
 
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
+    // Metallic initial "clink" attack transient
+    const noiseNode = ctx.createBufferSource();
+    const buffer = ctx.createBuffer(1, ctx.sampleRate * 0.02, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.005));
+    }
+    noiseNode.buffer = buffer;
 
-    osc2.start(now);
-    osc2.stop(now + 0.6);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.2, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.02);
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(3000, now);
+
+    noiseNode.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+
+    noiseNode.start(now);
   });
 }

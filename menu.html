@@ -61,13 +61,15 @@
       <button id="clear-search-btn" style="display:none;" class="clear-search">✕</button>
     </div>
 
-    <!-- Dietary Chips -->
+    <!-- Dietary & Allergen Chips -->
     <div class="dietary-chips" id="dietary-chips" style="margin-top: 10px;">
       <button class="diet-chip active" data-filter="all">🌟 Todos</button>
       <button class="diet-chip" data-filter="popular">⭐ Populares</button>
       <button class="diet-chip" data-filter="meat">🥩 Carnes</button>
       <button class="diet-chip" data-filter="veg">🌱 Vegetariano</button>
       <button class="diet-chip" data-filter="gluten-free">🌾 Sin Gluten</button>
+      <button class="diet-chip" data-filter="dairy-free">🥛❌ Sin Lactosa</button>
+      <button class="diet-chip" data-filter="seafood">🐟 Pescados</button>
       <button class="diet-chip" data-filter="spicy">🌶️ Picante</button>
       <button class="diet-chip" data-filter="drink">🥤 Bebidas & Bar</button>
       <button class="diet-chip" data-filter="sweet">🍰 Postres</button>
@@ -112,6 +114,26 @@
             <span id="cart-label-tax">IVA (16%)</span>
             <span id="cart-tax">$0</span>
           </div>
+
+          <!-- Tip Calculator -->
+          <div class="tip-calculator" style="margin: 10px 0; padding: 10px 12px; background: rgba(255,255,255,0.04); border-radius: 10px; border: 1px solid var(--color-glass-border);">
+            <div class="flex justify-between items-center" style="margin-bottom: 6px;">
+              <span style="font-size: 0.8125rem; font-weight: 600; color: var(--text-primary);">💝 Propina al personal</span>
+              <span id="cart-tip-amount" style="font-size: 0.8125rem; font-weight: 700; color: var(--color-primary);">$0</span>
+            </div>
+            <div class="flex gap-xs" id="tip-options" style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-ghost btn-sm tip-btn active" data-tip="0" style="flex:1; padding: 5px 0; font-size: 0.75rem;">0%</button>
+              <button type="button" class="btn btn-ghost btn-sm tip-btn" data-tip="10" style="flex:1; padding: 5px 0; font-size: 0.75rem;">10%</button>
+              <button type="button" class="btn btn-ghost btn-sm tip-btn" data-tip="15" style="flex:1; padding: 5px 0; font-size: 0.75rem;">15%</button>
+              <button type="button" class="btn btn-ghost btn-sm tip-btn" data-tip="20" style="flex:1; padding: 5px 0; font-size: 0.75rem;">20%</button>
+            </div>
+          </div>
+
+          <div class="cart-total-row" id="cart-tip-row" style="display: none;">
+            <span>Propina (<span id="cart-tip-percent">0%</span>)</span>
+            <span id="cart-tip">$0</span>
+          </div>
+
           <div class="cart-total-row total">
             <span id="cart-label-total">Total</span>
             <span id="cart-total">$0</span>

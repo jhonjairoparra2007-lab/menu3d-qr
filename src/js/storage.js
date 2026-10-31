@@ -710,6 +710,24 @@ export async function syncOrderToServer(order) {
 }
 
 /**
+ * Fetch latest orders from the server
+ */
+export async function syncOrdersFromServer() {
+  try {
+    const res = await fetch(`${API_BASE}/api/orders`);
+    if (!res.ok) return null;
+    const orders = await res.json();
+    if (Array.isArray(orders)) {
+      localStorage.setItem(LS_ORDERS_KEY, JSON.stringify(orders));
+      return orders;
+    }
+  } catch (e) {
+    console.warn('[sync] Could not pull orders from server:', e);
+  }
+  return null;
+}
+
+/**
  * Fetch the latest menu from the server and merge into localStorage.
  * Returns the up-to-date array of items.
  */
