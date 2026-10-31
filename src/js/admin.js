@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initSettings();
   initAIStatus();
   initAdminQR();
+  initAIModeler();
 
   // Listen for real-time updates (cross-tab sync)
   listenForSync((data) => {
@@ -825,4 +826,217 @@ function initAdminQR() {
     generateBtn.disabled = false;
     showToast(`¡${tableCount} códigos QR listos en el panel de administrador!`, 'success');
   });
+}
+
+
+// ===== AI 3D Modeler Panel =====
+let aiModImageDataUrl = null;
+
+export function initAIModeler() {
+  const uploadArea = document.getElementById('ai-mod-upload-area');
+  const fileInput = document.getElementById('ai-mod-image-input');
+  const previewWrap = document.getElementById('ai-mod-preview-wrap');
+  const previewImg = document.getElementById('ai-mod-preview-img');
+  const removeBtn = document.getElementById('ai-mod-remove-img');
+  const analyzeBtn = document.getElementById('ai-mod-analyze-btn');
+  const statusText = document.getElementById('ai-mod-status-text');
+  const resultFields = document.getElementById('ai-mod-result-fields');
+  const saveBtn = document.getElementById('ai-mod-save-btn');
+  const resetBtn = document.getElementById('ai-mod-reset-btn');
+
+  if (!uploadArea) return;
+
+  // Click to open file picker
+  uploadArea.addEventListener('click', (e) => {
+    if (e.target.closest('#ai-mod-remove-img')) return;
+    fileInput?.click();
+  });
+
+  // Drag & drop
+  uploadArea.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = 'var(--color-primary)';
+    uploadArea.style.background = 'rgba(245,158,11,0.12)';
+  });
+  uploadArea.addEventListener('dragleave', () => {
+    uploadArea.style.borderColor = '';
+    uploadArea.style.background = '';
+  });
+  uploadArea.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadArea.style.borderColor = '';
+    uploadArea.style.background = '';
+    const file = e.dataTransfer.files?.[0];
+    if (file) handleAIModImageFile(file);
+  });
+
+  fileInput?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) handleAIModImageFile(file);
+  });
+
+  removeBtn?.addEventListener('click', () => {
+    aiModImageDataUrl = null;
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (uploadArea) uploadArea.style.display = 'flex';
+    if (analyzeBtn) analyzeBtn.disabled = true;
+    if (resultFields) resultFields.style.display = 'none';
+    if (statusText) statusText.textContent = 'Sube una foto para comenzar el análisis con IA';
+    if (fileInput) fileInput.value = '';
+  });
+
+  analyzeBtn?.addEventListener('click', async () => {
+    if (!aiModImageDataUrl) return;
+
+    analyzeBtn.disabled = true;
+    analyzeBtn.textContent = '⏳ Analizando con IA...';
+    if (statusText) statusText.textContent = '🔍 Escaneando colores, texturas y composición del platillo...';
+
+    try {
+      const nameHint = document.getElementById('ai-mod-name')?.value || '';
+      const result = await detectFood3DModel(aiModImageDataUrl, nameHint);
+
+      if (result) {
+        // Populate form fields with AI results
+        const nameInput = document.getElementById('ai-mod-name');
+        const descInput = document.getElementById('ai-mod-desc');
+        const catSelect = document.getElementById('ai-mod-category');
+        const modelSelect = document.getElementById('ai-mod-model');
+        const confFill = document.getElementById('ai-mod-confidence-fill');
+        const confText = document.getElementById('ai-mod-confidence-text');
+
+        if (nameInput && !nameInput.value) nameInput.value = result.label || '';
+        if (descInput) descInput.value = result.description || result.desc || '';
+        if (catSelect && result.category) catSelect.value = result.category;
+        if (modelSelect && result.archetype) modelSelect.value = result.archetype;
+
+        const conf = Math.round((result.confidence || 0.78) * 100);
+        if (confFill) confFill.style.width = `${conf}%`;
+        if (confText) confText.textContent = `${conf}% confianza · Fuente: ${result.source === 'name-match' ? 'Nombre del platillo' : 'Análisis visual de colores'}`;
+
+        if (statusText) {
+          statusText.innerHTML = `✅ <strong>IA detectó:</strong> ${result.label || result.archetype} · ${conf}% confianza · Modelo 3D asignado automáticamente`;
+        }
+        if (resultFields) resultFields.style.display = 'block';
+
+        showToast(`🤖 IA detectó: "${result.label || result.archetype}" (${conf}%)`, 'success');
+      }
+    } catch (err) {
+      console.error('AI modeler error:', err);
+      if (statusText) statusText.textContent = '⚠️ Error en análisis. Puedes seleccionar el modelo manualmente.';
+      if (resultFields) resultFields.style.display = 'block';
+    } finally {
+      analyzeBtn.disabled = false;
+      analyzeBtn.textContent = '🤖 Analizar con IA y Modelar en 3D';
+    }
+  });
+
+  saveBtn?.addEventListener('click', async () => {
+    const name = document.getElementById('ai-mod-name')?.value.trim();
+    const price = parseFloat(document.getElementById('ai-mod-price')?.value);
+    const desc = document.getElementById('ai-mod-desc')?.value.trim() || '';
+    const category = document.getElementById('ai-mod-category')?.value || 'principales';
+    const modelType = document.getElementById('ai-mod-model')?.value || 'burger';
+
+    if (!name) {
+      showToast('Escribe el nombre del platillo antes de guardar', 'error');
+      document.getElementById('ai-mod-name')?.focus();
+      return;
+    }
+    if (!price || isNaN(price)) {
+      showToast('Ingresa el precio del platillo', 'error');
+      document.getElementById('ai-mod-price')?.focus();
+      return;
+    }
+
+    saveBtn.disabled = true;
+    saveBtn.textContent = '⏳ Guardando en el menú...';
+
+    try {
+      const ingredients = getDefaultIngredients(modelType);
+      const calMap = { tacos: 480, burger: 760, salad: 320, pizza: 820, dessert: 380, drink: 120, cocktail: 210, guacamole: 340, ribeye: 690, salmon: 540 };
+
+      const newItem = addMenuItem({
+        name,
+        description: desc,
+        category,
+        modelType,
+        price,
+        ingredients,
+        calories: calMap[modelType] || 450,
+        prepTime: '12-18 min',
+        tags: ['popular'],
+        status: 'approved',
+      });
+
+      if (aiModImageDataUrl) {
+        await saveImage(newItem.id, aiModImageDataUrl);
+      }
+
+      await syncMenuToServer(getMenuItems());
+
+      showToast(`✅ "${name}" agregado al menú con modelo 3D "${modelType}"`, 'success');
+
+      // Reset the form
+      document.getElementById('ai-mod-name').value = '';
+      document.getElementById('ai-mod-price').value = '';
+      document.getElementById('ai-mod-desc').value = '';
+      aiModImageDataUrl = null;
+      if (previewWrap) previewWrap.style.display = 'none';
+      if (uploadArea) uploadArea.style.display = 'flex';
+      if (analyzeBtn) analyzeBtn.disabled = true;
+      if (resultFields) resultFields.style.display = 'none';
+      if (statusText) statusText.textContent = 'Sube una foto para comenzar el análisis con IA';
+      if (confFill) confFill.style.width = '0%';
+      if (fileInput) fileInput.value = '';
+
+      // Refresh menu table if visible
+      if (currentSection === 'menu') renderMenuTable();
+      refreshDashboard();
+
+    } catch (err) {
+      console.error('AI modeler save error:', err);
+      showToast('Error al guardar el platillo', 'error');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = '✅ Agregar al Menú con Modelo 3D';
+    }
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    removeBtn?.click();
+    document.getElementById('ai-mod-name').value = '';
+    document.getElementById('ai-mod-price').value = '';
+    document.getElementById('ai-mod-desc').value = '';
+    const confFill = document.getElementById('ai-mod-confidence-fill');
+    if (confFill) confFill.style.width = '0%';
+    if (resultFields) resultFields.style.display = 'none';
+    if (statusText) statusText.textContent = 'Sube una foto para comenzar el análisis con IA';
+    showToast('Formulario de IA reiniciado', 'info');
+  });
+}
+
+function handleAIModImageFile(file) {
+  if (!file.type.startsWith('image/')) {
+    showToast('Selecciona un archivo de imagen válido (JPG, PNG o WebP)', 'error');
+    return;
+  }
+
+  const uploadArea = document.getElementById('ai-mod-upload-area');
+  const previewWrap = document.getElementById('ai-mod-preview-wrap');
+  const previewImg = document.getElementById('ai-mod-preview-img');
+  const analyzeBtn = document.getElementById('ai-mod-analyze-btn');
+  const statusText = document.getElementById('ai-mod-status-text');
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    aiModImageDataUrl = e.target.result;
+    if (uploadArea) uploadArea.style.display = 'none';
+    if (previewWrap) previewWrap.style.display = 'block';
+    if (previewImg) previewImg.src = aiModImageDataUrl;
+    if (analyzeBtn) analyzeBtn.disabled = false;
+    if (statusText) statusText.textContent = '📸 Imagen cargada. Haz clic en "Analizar con IA" para modelarla en 3D.';
+    showToast('Imagen lista — haz clic en Analizar con IA', 'info');
+  };
+  reader.readAsDataURL(file);
 }

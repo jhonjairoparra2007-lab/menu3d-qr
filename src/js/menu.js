@@ -363,7 +363,10 @@ async function renderMenuGrid() {
   grid.innerHTML = '';
   const config = getConfig();
 
-  for (const item of items) {
+  // Load all dish images in parallel (lightning fast on iPhone & Android)
+  const imageResults = await Promise.all(items.map(it => getImage(it.id)));
+
+  items.forEach((item, index) => {
     const card = document.createElement('div');
     card.className = 'menu-item-card';
     card.dataset.itemId = item.id;
@@ -371,19 +374,17 @@ async function renderMenuGrid() {
     const itemName = (lang === 'en' && item.nameEn) ? item.nameEn : item.name;
     const itemDesc = (lang === 'en' && item.descEn) ? item.descEn : (item.description || '');
 
+    const imgData = imageResults[index];
+    const emojis = {
+      tacos: '🌮', burger: '🍔', pizza: '🍕', ribeye: '🥩',
+      salad: '🥗', drink: '🥤', cocktail: '🍹', dessert: '🍮',
+      salmon: '🐟', guacamole: '🥑'
+    };
+
     let imageHtml = '';
-    let imgData = await getImage(item.id);
-    if (!imgData) {
-      imgData = await syncImageFromServer(item.id);
-    }
     if (imgData) {
-      imageHtml = `<img src="${imgData}" alt="${itemName}" loading="lazy" />`;
+      imageHtml = `<img src="${imgData}" alt="${itemName}" loading="lazy" decoding="async" />`;
     } else {
-      const emojis = {
-        tacos: '🌮', burger: '🍔', pizza: '🍕', ribeye: '🥩',
-        salad: '🥗', drink: '🥤', cocktail: '🍹', dessert: '🍮',
-        salmon: '🐟', guacamole: '🥑'
-      };
       imageHtml = `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;background:var(--color-bg-tertiary);">${emojis[item.modelType] || '🍽️'}</div>`;
     }
 
@@ -437,7 +438,7 @@ async function renderMenuGrid() {
     });
 
     grid.appendChild(card);
-  }
+  });
 }
 
 // ---- Cart Handling ----

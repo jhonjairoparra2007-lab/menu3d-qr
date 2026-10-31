@@ -11,6 +11,9 @@ const LS_ORDERS_KEY = 'menu3d_orders';
 const LS_CONFIG_KEY = 'menu3d_config';
 const LS_CART_KEY = 'menu3d_cart';
 
+// In-memory cache for ultra-fast, iOS Safari-safe image access
+const memoryImageCache = new Map();
+
 // ---- IndexedDB for images ----
 function openDB() {
   return new Promise((resolve, reject) => {
@@ -27,19 +30,29 @@ function openDB() {
 }
 
 export async function saveImage(id, dataUrl) {
-  const db = await openDB();
-  await new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_IMAGES, 'readwrite');
-    tx.objectStore(STORE_IMAGES).put({ id, data: dataUrl, timestamp: Date.now() });
-    tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
-  });
+  memoryImageCache.set(id, dataUrl);
+  try {
+    const db = await openDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_IMAGES, 'readwrite');
+      tx.objectStore(STORE_IMAGES).put({ id, data: dataUrl, timestamp: Date.now() });
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('[saveImage] IndexedDB write failed (falling back to memory/server):', err);
+  }
   // Also push to server for cross-device sync
   syncImageToServer(id, dataUrl);
 }
 
 export async function getImage(id) {
-  // iOS Safari private mode can block IndexedDB — always try server fallback
+  // 1. Check in-memory cache first (instant, 100% works on iOS / Safari private mode)
+  if (memoryImageCache.has(id)) {
+    return memoryImageCache.get(id);
+  }
+
+  // 2. Try IndexedDB
   try {
     const db = await openDB();
     const localData = await new Promise((resolve, reject) => {
@@ -48,12 +61,20 @@ export async function getImage(id) {
       request.onsuccess = () => resolve(request.result?.data || null);
       request.onerror = () => reject(request.error);
     });
-    if (localData) return localData;
+    if (localData) {
+      memoryImageCache.set(id, localData);
+      return localData;
+    }
   } catch (e) {
     console.warn('[getImage] IndexedDB failed (possible iOS private mode):', e);
   }
-  // Fallback: try fetching from server (works on all devices including iPhone)
-  return syncImageFromServer(id);
+
+  // 3. Fallback: try fetching from server
+  const serverData = await syncImageFromServer(id);
+  if (serverData) {
+    memoryImageCache.set(id, serverData);
+  }
+  return serverData;
 }
 
 export async function deleteImage(id) {
@@ -755,12 +776,37 @@ async function saveImageLocal(id, dataUrl) {
 }
 
 /**
+ * Fetch ALL images in a single call — perfect for iOS / Safari startup
+ */
+export async function syncAllImagesFromServer() {
+  try {
+    const res = await fetch(`${API_BASE}/api/images`);
+    if (!res.ok) return null;
+    const all = await res.json();
+    if (all && typeof all === 'object') {
+      for (const [id, dataUrl] of Object.entries(all)) {
+        if (dataUrl) {
+          memoryImageCache.set(id, dataUrl);
+          // Also save in local IndexedDB without waiting
+          saveImageLocal(id, dataUrl).catch(() => {});
+        }
+      }
+      return all;
+    }
+  } catch (e) {
+    console.warn('[sync] Could not pull all images from server:', e);
+  }
+  return null;
+}
+
+/**
  * Full initial sync from server — call on page load for cross-device pages (menu.html).
- * Fetches menu + config from the server and stores locally.
+ * Fetches menu + config + all dish images in parallel.
  */
 export async function initialSyncFromServer() {
   await Promise.all([
     syncMenuFromServer(),
     syncConfigFromServer(),
+    syncAllImagesFromServer(),
   ]);
 }

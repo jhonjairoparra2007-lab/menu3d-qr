@@ -1,0 +1,267 @@
+/* =============================================
+   AI 3D MODELER SECTION STYLES
+   Responsive & mobile-optimized
+   ============================================= */
+
+/* AI Modeler two-column grid */
+.ai-modeler-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-lg);
+}
+
+/* Upload area inside AI modeler */
+#ai-mod-upload-area {
+  border: 2px dashed rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+  padding: var(--space-xl);
+  text-align: center;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  background: rgba(245, 158, 11, 0.04);
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  -webkit-tap-highlight-color: transparent;
+}
+
+#ai-mod-upload-area:hover,
+#ai-mod-upload-area:active {
+  border-color: var(--color-primary);
+  background: rgba(245, 158, 11, 0.09);
+}
+
+#ai-mod-upload-area .upload-icon {
+  font-size: 2.5rem;
+  margin-bottom: var(--space-sm);
+}
+
+/* Confidence bar */
+#ai-mod-confidence-bar {
+  height: 8px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+#ai-mod-confidence-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #f59e0b, #22c55e);
+  border-radius: 99px;
+  transition: width 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Tips grid */
+.ai-modeler-tips-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: var(--space-md);
+}
+
+.ai-modeler-tip {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.ai-modeler-tip-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* =============================================
+   MOBILE ADMIN LAYOUT IMPROVEMENTS
+   ============================================= */
+
+/* Better touch targets on admin cards on mobile */
+@media (max-width: 900px) {
+  .ai-modeler-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 560px;
+  }
+
+  /* Settings flex wrap */
+  .settings-section .flex {
+    flex-direction: column;
+  }
+
+  .settings-section .form-group[style*="flex: 0 0"] {
+    flex: 1 !important;
+    min-width: 100% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-main {
+    padding: 12px 12px 90px 12px !important;
+  }
+
+  .admin-header h1 {
+    font-size: 1.25rem;
+  }
+
+  .admin-header {
+    margin-bottom: var(--space-md);
+  }
+
+  /* Stats grid 2 columns on mobile */
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: var(--space-md);
+  }
+
+  .stat-value {
+    font-size: 1.5rem;
+  }
+
+  /* Admin modal full screen on mobile */
+  .admin-modal-panel {
+    width: 100%;
+    max-width: 100%;
+    max-height: 96dvh;
+    border-radius: 20px 20px 0 0;
+    overflow-y: auto;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 20px 16px max(20px, env(safe-area-inset-bottom)) 16px;
+  }
+
+  .admin-modal {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  /* Make form fields full width on mobile admin */
+  #item-form .flex {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  #item-form .form-group[style*="flex:"] {
+    flex: 1 !important;
+  }
+
+  /* Batch QR grid single column on tiny phones */
+  .batch-qr-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  /* AI modeler tips single column */
+  .ai-modeler-tips-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 420px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+    margin-bottom: 6px;
+  }
+
+  .batch-qr-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =============================================
+   iOS / SAFARI SPECIFIC FIXES
+   ============================================= */
+
+/* Fix iOS Safari 100vh bug with dynamic viewport */
+.viewer-container {
+  height: 94svh; /* svh = small viewport height — fixes iOS address bar */
+  max-height: 94svh;
+}
+
+@supports not (height: 100svh) {
+  .viewer-container {
+    height: 94vh;
+    max-height: 94vh;
+  }
+}
+
+/* Fix iOS tap highlight on interactive elements */
+.menu-item-card,
+.viewer-control-btn,
+.ingredient-btn,
+.category-tab,
+.btn {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Prevent iOS double-tap zoom on buttons */
+.btn,
+.viewer-control-btn {
+  touch-action: manipulation;
+}
+
+/* Fix iOS fixed positioning inside scroll containers */
+.mobile-cart-btn {
+  /* Use safe-area-inset for iOS notch/home indicator */
+  bottom: max(12px, env(safe-area-inset-bottom, 12px));
+}
+
+.assistance-fab-wrapper {
+  bottom: max(74px, calc(env(safe-area-inset-bottom, 0px) + 62px));
+}
+
+/* Fix iOS scroll momentum */
+.admin-main,
+.menu-content,
+.admin-sidebar,
+.viewer-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Image loading fallback placeholder for iOS */
+.menu-item-img-loading {
+  background: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.08) 0%,
+    rgba(30, 28, 24, 0.9) 50%,
+    rgba(245, 158, 11, 0.08) 100%
+  );
+  background-size: 200% 200%;
+  animation: shimmer 1.8s ease infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
