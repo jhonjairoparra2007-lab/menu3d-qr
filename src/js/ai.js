@@ -1,14 +1,15 @@
 /**
- * ai.js - AI Moderation & Auto-description
- * Uses Hugging Face Inference API (free tier) for:
- * - Image content moderation (NSFW detection)
- * - Auto-generating food descriptions
- * Falls back to client-side heuristics when API is unavailable
+ * ai.js - AI Food Analysis, 3D Model Generation & Content Moderation
+ * Uses:
+ * - Google Gemini API (primary) for vision-based 3D food modeling
+ * - Hugging Face Inference API (secondary) for depth maps & moderation
+ * - Client-side photometric CV fallback when no API keys are configured
  */
 
 import { getConfig } from './storage.js';
 
 const HF_API_BASE = 'https://api-inference.huggingface.co/models';
+const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 // Models
 const MODELS = {
@@ -17,14 +18,23 @@ const MODELS = {
   classification: 'google/vit-base-patch16-224',
   depth: 'depth-anything/Depth-Anything-V2-Small-hf',
   depthFallback: 'Intel/dpt-large',
+  geminiVision: 'gemini-2.0-flash',
 };
 
 /**
- * Check if AI features are available
+ * Check if AI features are available (Hugging Face)
  */
 export function isAIAvailable() {
   const config = getConfig();
   return config.aiEnabled && config.hfApiKey && config.hfApiKey.length > 10;
+}
+
+/**
+ * Check if Gemini AI is available
+ */
+export function isGeminiAvailable() {
+  const config = getConfig();
+  return config.aiEnabled && config.geminiApiKey && config.geminiApiKey.length > 10;
 }
 
 /**
@@ -299,6 +309,322 @@ export function getAIStatusText() {
 }
 
 /**
+ * Validate Google Gemini API key by making a test models.list call
+ */
+export async function validateGeminiApiKey(apiKey) {
+  if (!apiKey || apiKey.trim().length < 10) {
+    return { valid: false, message: 'La API Key de Gemini está vacía o es demasiado corta' };
+  }
+
+  const cleanKey = apiKey.trim();
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${cleanKey}`);
+    if (res.status === 200) {
+      return { valid: true, message: '¡API Key de Google Gemini conectada exitosamente!' };
+    }
+    const errData = await res.json().catch(() => ({}));
+    return {
+      valid: false,
+      message: `Error de Gemini (${res.status}): ${errData.error?.message || 'Clave no válida o sin permisos'}`
+    };
+  } catch (err) {
+    return { valid: false, message: 'Error de red al conectar con Gemini: ' + err.message };
+  }
+}
+
+/**
+ * Generate a complete 3D procedural food recipe using Google Gemini Vision
+ */
+export async function generateGeminiFood3DModel(imageDataUrl, itemNameHint = '') {
+  const config = getConfig();
+  const apiKey = config.geminiApiKey;
+
+  if (!apiKey) {
+    throw new Error('Gemini API key no configurada');
+  }
+
+  const [header, base64Data] = imageDataUrl.split(',');
+  const mimeType = header.match(/:(.*?);/)?.[1] || 'image/jpeg';
+
+  const systemPrompt = `Eres un chef maestro y diseñador de geometría 3D en WebGL (Three.js).
+Analiza detalladamente esta fotografía del platillo y crea su MODELO 3D REAL personalizado.
+No inventes una hamburguesa si es ramen, sushi, paella, pasta, pollo, ceviche, ensalada, sopa o postre.
+Diseña el modelo 3D con formas tridimensionales geométricas ensambladas (cilindros, cajas, esferas, toros, discos, cúpulas) divididas en 3 niveles de altura (base, cuerpo central, topping/adorno) para que pueda armarse y desarmarse en 3D.
+
+Debes responder ÚNICAMENTE con un objeto JSON válido con esta estructura exacta:
+{
+  "name": "Nombre gourmet descriptivo del platillo (ej: Ramen Tonkotsu Tradicional)",
+  "category": "principales", // una de: "entradas", "principales", "postres", "bebidas", "cocteles", "especiales"
+  "description": "Descripción gastronómica profesional y apetitosa (2-3 oraciones)",
+  "calories": 620,
+  "prepTime": "15-20 min",
+  "tags": ["popular"],
+  "plate": {
+    "type": "round_plate", // una de: "round_plate", "deep_bowl", "black_slate", "wooden_board"
+    "color": "#181614",
+    "rimColor": "#d97706"
+  },
+  "layers": [
+    {
+      "name": "Base / Cama o Caldo",
+      "icon": "🍜",
+      "type": "base",
+      "elevation": -0.24,
+      "explodeOffset": -0.45,
+      "shapes": [
+        {
+          "geometry": "cylinder", // cylinder, box, sphere, torus, disc, dome
+          "scale": [0.86, 0.12, 0.86],
+          "position": [0, -0.24, 0],
+          "rotation": [0, 0, 0],
+          "color": "#e8b86d",
+          "roughness": 0.3,
+          "metalness": 0.05,
+          "clearcoat": 0.9
+        }
+      ]
+    },
+    {
+      "name": "Cuerpo Principal",
+      "icon": "🥩",
+      "type": "core",
+      "elevation": -0.05,
+      "explodeOffset": 0.12,
+      "shapes": [
+        {
+          "geometry": "box",
+          "scale": [0.72, 0.18, 0.52],
+          "position": [0, -0.08, 0],
+          "rotation": [0, 0.2, 0],
+          "color": "#632712",
+          "roughness": 0.42,
+          "metalness": 0.08,
+          "clearcoat": 0.85
+        }
+      ]
+    },
+    {
+      "name": "Toppings, Salsas y Guarnición",
+      "icon": "🌿",
+      "type": "topping",
+      "elevation": 0.22,
+      "explodeOffset": 0.68,
+      "shapes": [
+        {
+          "geometry": "cylinder",
+          "scale": [0.22, 0.04, 0.22],
+          "position": [0.25, 0.15, -0.1],
+          "rotation": [0, 0, 0.1],
+          "color": "#22c55e",
+          "roughness": 0.35,
+          "metalness": 0.02,
+          "clearcoat": 0.8
+        }
+      ]
+    }
+  ],
+  "ingredients": [
+    { "name": "Ingrediente 1", "desc": "Detalle del ingrediente", "icon": "🥩" },
+    { "name": "Ingrediente 2", "desc": "Detalle del ingrediente", "icon": "🍚" },
+    { "name": "Ingrediente 3", "desc": "Detalle del ingrediente", "icon": "🌿" }
+  ]
+}`;
+
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  let lastError = null;
+
+  for (const modelName of modelsToTry) {
+    try {
+      const url = `${GEMINI_API_BASE}/${modelName}:generateContent?key=${apiKey}`;
+      const payload = {
+        contents: [
+          {
+            parts: [
+              { text: systemPrompt + (itemNameHint ? `\n\nNombre o pista sugerida por el usuario: "${itemNameHint}"` : '') },
+              {
+                inline_data: {
+                  mime_type: mimeType,
+                  data: base64Data
+                }
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json"
+        }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Gemini ${modelName} (${response.status}): ${errText}`);
+      }
+
+      const resJson = await response.json();
+      const rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) throw new Error('Respuesta vacía de Gemini');
+
+      const parsed = JSON.parse(rawText);
+      return {
+        ...parsed,
+        source: `Google Gemini AI (${modelName})`,
+        confidence: 0.98
+      };
+    } catch (err) {
+      console.warn(`Intento con ${modelName} falló:`, err.message);
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('No se pudo contactar a Gemini');
+}
+
+/**
+ * Procedural fallback recipe generator with rich 3D geometries tailored to food categories
+ */
+export function generateProceduralCulinaryRecipe(imageDataUrl, itemNameHint = '') {
+  const name = itemNameHint || 'Especialidad Culinaria 3D';
+  const nameLower = name.toLowerCase();
+
+  let category = 'principales';
+  let plateType = 'round_plate';
+  let baseColor = '#e5d9c5';
+  let coreColor = '#8a3c1b';
+  let topColor = '#2e7d32';
+  let baseName = 'Guarnición & Cama';
+  let coreName = 'Elemento Principal Sellado';
+  let topName = 'Glaseado & Microgreens';
+  let baseIcon = '🍚';
+  let coreIcon = '🥩';
+  let topIcon = '🌿';
+
+  if (nameLower.includes('sushi') || nameLower.includes('maki') || nameLower.includes('nigiri')) {
+    category = 'especiales';
+    plateType = 'black_slate';
+    baseColor = '#f5f5f5'; baseName = 'Arroz Shari con Alga Nori'; baseIcon = '🍙';
+    coreColor = '#fa5252'; coreName = 'Salmón Fresco & Atún'; coreIcon = '🍣';
+    topColor = '#40c057'; topName = 'Wasabi, Jengibre & Sésamo'; topIcon = '🥢';
+  } else if (nameLower.includes('ramen') || nameLower.includes('sopa') || nameLower.includes('caldo')) {
+    category = 'principales';
+    plateType = 'deep_bowl';
+    baseColor = '#d99b43'; baseName = 'Caldo Concentrado & Fideos'; baseIcon = '🍜';
+    coreColor = '#8d4925'; coreName = 'Chashu de Cerdo Braseado'; coreIcon = '🥩';
+    topColor = '#2f9e44'; topName = 'Cebollín, Alga & Huevo Ajitsuke'; topIcon = '🥚';
+  } else if (nameLower.includes('pasta') || nameLower.includes('lasa') || nameLower.includes('spaghetti')) {
+    category = 'principales';
+    plateType = 'deep_bowl';
+    baseColor = '#f0c674'; baseName = 'Pasta Artesanal al Dente'; baseIcon = '🍝';
+    coreColor = '#c92a2a'; coreName = 'Salsa Bolognesa / Pomodoro'; coreIcon = '🍅';
+    topColor = '#ffe066'; topName = 'Parmesano Gratinado & Albahaca'; topIcon = '🧀';
+  } else if (nameLower.includes('pizza')) {
+    category = 'principales';
+    plateType = 'wooden_board';
+    baseColor = '#d4883b'; baseName = 'Masa Madre Fermentada'; baseIcon = '🍕';
+    coreColor = '#fff3bf'; coreName = 'Mozzarella & Pomodoro'; coreIcon = '🧀';
+    topColor = '#e03131'; topName = 'Pepperoni & Albahaca'; topIcon = '🌿';
+  } else if (nameLower.includes('postre') || nameLower.includes('pastel') || nameLower.includes('tarta') || nameLower.includes('helado')) {
+    category = 'postres';
+    plateType = 'round_plate';
+    baseColor = '#fcc419'; baseName = 'Base de Galleta & Crema'; baseIcon = '🍰';
+    coreColor = '#e8590c'; coreName = 'Cuerpo Suave Artesanal'; coreIcon = '🍮';
+    topColor = '#c92a2a'; topName = 'Frutos Rojos & Caramelo'; topIcon = '🍓';
+  } else if (nameLower.includes('pescado') || nameLower.includes('ceviche') || nameLower.includes('marisco')) {
+    category = 'especiales';
+    plateType = 'deep_bowl';
+    baseColor = '#f1f3f5'; baseName = 'Cama Marina con Camote'; baseIcon = '🍠';
+    coreColor = '#ff8787'; coreName = 'Corte Fresco Marinado en Lima'; coreIcon = '🐟';
+    topColor = '#51cf66'; topName = 'Cilantro, Ají & Cebolla Morada'; topIcon = '🍋';
+  }
+
+  return {
+    name,
+    category,
+    description: `Platillo de autor preparado con ingredientes selectos de la más alta calidad, presentación cuidada y cocción en su punto óptimo.`,
+    calories: 540,
+    prepTime: '15-20 min',
+    tags: ['popular'],
+    plate: {
+      type: plateType,
+      color: plateType === 'black_slate' ? '#121212' : (plateType === 'wooden_board' ? '#422817' : '#181614'),
+      rimColor: '#d97706'
+    },
+    layers: [
+      {
+        name: baseName,
+        icon: baseIcon,
+        type: 'base',
+        elevation: -0.22,
+        explodeOffset: -0.42,
+        shapes: [
+          {
+            geometry: plateType === 'deep_bowl' ? 'cylinder' : 'disc',
+            scale: [0.86, 0.12, 0.86],
+            position: [0, -0.24, 0],
+            rotation: [0, 0, 0],
+            color: baseColor,
+            roughness: 0.65,
+            metalness: 0.05,
+            clearcoat: 0.3
+          }
+        ]
+      },
+      {
+        name: coreName,
+        icon: coreIcon,
+        type: 'core',
+        elevation: -0.05,
+        explodeOffset: 0.15,
+        shapes: [
+          {
+            geometry: 'cylinder',
+            scale: [0.75, 0.22, 0.75],
+            position: [0, -0.08, 0],
+            rotation: [0, 0.3, 0],
+            color: coreColor,
+            roughness: 0.45,
+            metalness: 0.08,
+            clearcoat: 0.85
+          }
+        ]
+      },
+      {
+        name: topName,
+        icon: topIcon,
+        type: 'topping',
+        elevation: 0.22,
+        explodeOffset: 0.68,
+        shapes: [
+          {
+            geometry: 'cylinder',
+            scale: [0.35, 0.05, 0.35],
+            position: [0, 0.18, 0],
+            rotation: [0, 0.1, 0],
+            color: topColor,
+            roughness: 0.32,
+            metalness: 0.02,
+            clearcoat: 0.8
+          }
+        ]
+      }
+    ],
+    ingredients: [
+      { name: baseName, desc: 'Base preparada artesanalmente con sazón de la casa', icon: baseIcon },
+      { name: coreName, desc: 'Ingredientes principales cocinados con técnica de precisión', icon: coreIcon },
+      { name: topName, desc: 'Toque decorativo final con aromas frescos', icon: topIcon }
+    ],
+    source: 'Modelador Procedural Inteligente 3D',
+    confidence: 0.88
+  };
+}
+
+/**
  * Validate a Hugging Face API key by making a test request
  */
 export async function validateHFApiKey(apiKey) {
@@ -494,23 +820,50 @@ export async function generateAIDepthMap(imageDataUrl) {
  * Analyzes uploaded food photos and generates custom 3D depth geometry & metadata
  */
 export async function detectFood3DModel(imageDataUrl, itemName = '') {
-  let detectedType = 'custom_ai';
-  let confidence = 0.88;
-  let source = 'ai-neural';
   let depthResult = null;
 
   // Compute depth map if photo is provided
   if (imageDataUrl) {
     try {
       depthResult = await generateAIDepthMap(imageDataUrl);
-      if (depthResult?.source) source = depthResult.source;
-      if (depthResult?.confidence) confidence = depthResult.confidence;
     } catch (e) {
       console.warn('Depth map generation error:', e);
     }
   }
 
-  // 1. Text hint matching from item name if provided
+  // 1. Try Google Gemini Vision first if configured
+  if (imageDataUrl && isGeminiAvailable()) {
+    try {
+      const geminiRecipe = await generateGeminiFood3DModel(imageDataUrl, itemName);
+      if (geminiRecipe) {
+        return {
+          modelType: 'custom_ai',
+          archetype: 'custom_ai',
+          label: geminiRecipe.name || itemName || 'Platillo Esculpido por Gemini 3D',
+          name: geminiRecipe.name || itemName || 'Platillo Esculpido por Gemini 3D',
+          desc: geminiRecipe.description || '',
+          description: geminiRecipe.description || '',
+          category: geminiRecipe.category || 'principales',
+          calories: geminiRecipe.calories || 550,
+          prepTime: geminiRecipe.prepTime || '15-20 min',
+          tags: geminiRecipe.tags || ['popular'],
+          ingredients: geminiRecipe.ingredients || [],
+          ai3dRecipe: geminiRecipe,
+          aiDepthMap: depthResult?.depthMapUrl || null,
+          confidence: geminiRecipe.confidence || 0.98,
+          source: geminiRecipe.source || 'Google Gemini AI',
+        };
+      }
+    } catch (err) {
+      console.warn('Gemini Vision analysis fallback:', err.message);
+    }
+  }
+
+  // 2. Text hint matching from item name if provided
+  let detectedType = 'custom_ai';
+  let confidence = 0.88;
+  let source = 'ai-neural';
+
   const nameLower = (itemName || '').toLowerCase();
   if (nameLower.includes('taco') || nameLower.includes('pastor') || nameLower.includes('fajita') || nameLower.includes('tortilla')) {
     detectedType = 'tacos';
@@ -553,10 +906,12 @@ export async function detectFood3DModel(imageDataUrl, itemName = '') {
     confidence = 0.95;
     source = 'name-match';
   } else if (imageDataUrl) {
-    // If not matched to standard presets, create bespoke AI 3D model!
     detectedType = 'custom_ai';
     confidence = depthResult?.confidence || 0.90;
   }
+
+  // 3. Fallback procedural recipe for custom_ai
+  const customRecipe = generateProceduralCulinaryRecipe(imageDataUrl, itemName);
 
   // Model-specific preset metadata
   const metaPresets = {
@@ -665,7 +1020,12 @@ export async function detectFood3DModel(imageDataUrl, itemName = '') {
   return {
     ...selected,
     archetype: detectedType,
-    label: itemName ? itemName : (selected.label || 'Platillo Esculpido por IA 3D'),
+    label: itemName ? itemName : (selected.label || customRecipe?.name || 'Platillo Esculpido por IA 3D'),
+    name: itemName ? itemName : (selected.label || customRecipe?.name || 'Platillo Esculpido por IA 3D'),
+    category: selected.category || customRecipe?.category || 'principales',
+    description: selected.desc || customRecipe?.description || '',
+    ingredients: selected.ingredients || customRecipe?.ingredients || [],
+    ai3dRecipe: customRecipe,
     confidence: depthResult?.confidence || confidence,
     source: depthResult?.source === 'ai-neural' ? 'Red Neuronal Depth-Anything V2 (IA Real)' : (depthResult?.source === 'photometric-cv' ? 'Visión Computacional Fotométrica 3D' : source),
     aiDepthMap: depthResult?.depthMapUrl || null,

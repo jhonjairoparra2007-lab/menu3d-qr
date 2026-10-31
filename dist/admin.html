@@ -6,11 +6,11 @@
   <title>Panel Admin - Menu3D QR</title>
   <meta name="description" content="Panel de administración para gestionar el menú digital, fotos, pedidos y configuración." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
-  <script type="module" crossorigin src="/assets/admin-CCBRo8wq.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/toast-HHYk2OcX.js">
-  <link rel="modulepreload" crossorigin href="/assets/ai-SRfuPGmd.js">
+  <script type="module" crossorigin src="/assets/admin-BCLYvwcu.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-DCbWH7DU.js">
+  <link rel="modulepreload" crossorigin href="/assets/ai-Cz80xsC6.js">
   <link rel="modulepreload" crossorigin href="/assets/audio-DW6bDp2f.js">
-  <link rel="stylesheet" crossorigin href="/assets/toast-CKm6oiT7.css">
+  <link rel="stylesheet" crossorigin href="/assets/toast-CWEatEVJ.css">
 </head>
 <body>
   <div class="bg-pattern"></div>
@@ -379,11 +379,28 @@
         </div>
 
         <div class="settings-section">
-          <h3>🤖 Integración IA para Modelado 3D & Moderación</h3>
+          <h3>✨ Google Gemini Vision 3D (IA Real para Modelado de Comida)</h3>
           <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--space-md);">
-            Configura tu API Key de <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--color-primary-light);text-decoration:underline;">Hugging Face</a> 
-            para habilitar el modelado 3D automático por IA al subir fotos, moderación y sugerencias.
-            Es gratuita y fácil de crear.
+            Conecta tu API Key de <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--color-primary-light);text-decoration:underline;font-weight:600;">Google AI Studio (Gemini)</a> 
+            para que la IA analice la imagen de cualquier comida y <strong>diseñe su propio modelo 3D único con capas, formas geométricas y materiales PBR fotorrealistas</strong>. ¡Es 100% gratuita!
+          </p>
+          <div class="flex gap-md items-end" style="flex-wrap: wrap; margin-bottom: var(--space-md);">
+            <div class="form-group" style="flex: 1; min-width: 250px;">
+              <label for="cfg-gemini-key">API Key de Google Gemini (AIzaSy...)</label>
+              <input type="password" id="cfg-gemini-key" placeholder="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" />
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <button type="button" class="btn btn-secondary" id="btn-validate-gemini-key" style="margin-bottom: 2px;">
+                ✨ Probar y Validar Gemini
+              </button>
+            </div>
+          </div>
+          <div id="gemini-key-validation-status" style="margin-top: 4px; margin-bottom: var(--space-md); font-size: 0.8125rem; display: none;"></div>
+
+          <h4 style="font-size: 0.9375rem; margin-top: var(--space-md); margin-bottom: 6px;">🤗 Hugging Face (Opcional - Mapas de Profundidad Neuronal)</h4>
+          <p class="text-muted" style="font-size: 0.8125rem; margin-bottom: var(--space-sm);">
+            API Key de <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--color-primary-light);text-decoration:underline;">Hugging Face</a> 
+            para estimación de profundidad (Depth-Anything-V2) y moderación.
           </p>
           <div class="flex gap-md items-end" style="flex-wrap: wrap;">
             <div class="form-group" style="flex: 1; min-width: 250px;">
@@ -392,7 +409,7 @@
             </div>
             <div class="form-group" style="flex: 0 0 auto;">
               <button type="button" class="btn btn-secondary" id="btn-validate-hf-key" style="margin-bottom: 2px;">
-                🔑 Probar y Validar API Key
+                🔑 Probar y Validar HF
               </button>
             </div>
             <div class="form-group" style="flex: 0 0 auto;">

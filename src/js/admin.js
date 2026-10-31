@@ -14,7 +14,7 @@ import {
   getDefaultIngredients,
   syncOrdersFromServer,
 } from './storage.js';
-import { analyzeImage, getAIStatusText, validateHFApiKey, detectFood3DModel } from './ai.js';
+import { analyzeImage, getAIStatusText, validateHFApiKey, validateGeminiApiKey, detectFood3DModel } from './ai.js';
 import { showToast } from './toast.js';
 import { playKitchenBellSound } from './audio.js';
 
@@ -739,10 +739,44 @@ function renderOrders() {
 function initSettings() {
   const saveBtn = document.getElementById('save-settings-btn');
   const resetBtn = document.getElementById('reset-data-btn');
+  const validateGeminiBtn = document.getElementById('btn-validate-gemini-key');
   const validateHfBtn = document.getElementById('btn-validate-hf-key');
 
   saveBtn?.addEventListener('click', handleSaveSettings);
   resetBtn?.addEventListener('click', handleResetDemo);
+
+  validateGeminiBtn?.addEventListener('click', async () => {
+    const keyInput = document.getElementById('cfg-gemini-key');
+    const statusEl = document.getElementById('gemini-key-validation-status');
+    const apiKey = keyInput?.value.trim();
+
+    if (!apiKey) {
+      if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.innerHTML = '<span style="color:var(--color-warning);">⚠️ Ingresa tu API Key de Gemini antes de validar.</span>';
+      }
+      showToast('Ingresa una API Key de Gemini para probar', 'warning');
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = '<span style="color:var(--color-primary);">⏳ Conectando con Google Gemini Vision API...</span>';
+    }
+
+    const res = await validateGeminiApiKey(apiKey);
+    if (res.valid) {
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--color-success); font-weight:600;">${res.message}</span>`;
+      }
+      showToast('API Key de Google Gemini verificada correctamente ✨', 'success');
+    } else {
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--color-danger); font-weight:600;">❌ ${res.message}</span>`;
+      }
+      showToast('API Key de Gemini inválida o error de conexión', 'error');
+    }
+  });
 
   validateHfBtn?.addEventListener('click', async () => {
     const keyInput = document.getElementById('cfg-hf-key');
@@ -751,6 +785,7 @@ function initSettings() {
 
     if (!apiKey) {
       if (statusEl) {
+        statusEl.style.display = 'block';
         statusEl.innerHTML = '<span style="color:var(--color-warning);">⚠️ Ingresa una clave antes de validar.</span>';
       }
       showToast('Ingresa una API Key para probar', 'warning');
@@ -758,6 +793,7 @@ function initSettings() {
     }
 
     if (statusEl) {
+      statusEl.style.display = 'block';
       statusEl.innerHTML = '<span style="color:var(--color-primary);">⏳ Conectando con Hugging Face Inference API...</span>';
     }
 
@@ -786,6 +822,7 @@ function loadSettings() {
   const tablesInput = document.getElementById('cfg-tables');
   const whatsappInput = document.getElementById('cfg-whatsapp');
   const baseUrlInput = document.getElementById('cfg-base-url');
+  const geminiKeyInput = document.getElementById('cfg-gemini-key');
   const hfKeyInput = document.getElementById('cfg-hf-key');
   const aiEnabledCheck = document.getElementById('cfg-ai-enabled');
   const pinInput = document.getElementById('cfg-admin-pin');
@@ -795,6 +832,7 @@ function loadSettings() {
   if (tablesInput) tablesInput.value = config.tableCount || 20;
   if (whatsappInput) whatsappInput.value = config.whatsappNumber || '573146841042';
   if (baseUrlInput) baseUrlInput.value = config.baseUrl || 'http://192.168.1.35:3000';
+  if (geminiKeyInput) geminiKeyInput.value = config.geminiApiKey || '';
   if (hfKeyInput) hfKeyInput.value = config.hfApiKey || '';
   if (aiEnabledCheck) aiEnabledCheck.checked = config.aiEnabled !== false;
   if (pinInput) pinInput.value = config.adminPin || '1234';
@@ -808,6 +846,7 @@ async function handleSaveSettings() {
   config.tableCount = parseInt(document.getElementById('cfg-tables').value) || 20;
   config.whatsappNumber = document.getElementById('cfg-whatsapp')?.value.trim() || '573146841042';
   config.baseUrl = document.getElementById('cfg-base-url')?.value.trim() || 'http://192.168.1.35:3000';
+  config.geminiApiKey = document.getElementById('cfg-gemini-key')?.value.trim() || '';
   config.hfApiKey = document.getElementById('cfg-hf-key').value.trim();
   config.aiEnabled = document.getElementById('cfg-ai-enabled').checked;
   const pinVal = document.getElementById('cfg-admin-pin')?.value.trim();
@@ -906,6 +945,8 @@ function initAdminQR() {
 // ===== AI 3D Modeler Panel =====
 let aiModImageDataUrl = null;
 let aiModDepthMapUrl = null;
+let aiMod3dRecipe = null;
+let aiModIngredients = null;
 
 export function initAIModeler() {
   const uploadArea = document.getElementById('ai-mod-upload-area');
@@ -974,6 +1015,9 @@ export function initAIModeler() {
 
       if (result) {
         aiModDepthMapUrl = result.aiDepthMap || null;
+        aiMod3dRecipe = result.ai3dRecipe || null;
+        aiModIngredients = result.ingredients || null;
+
         // Populate form fields with AI results
         const nameInput = document.getElementById('ai-mod-name');
         const descInput = document.getElementById('ai-mod-desc');
@@ -982,7 +1026,7 @@ export function initAIModeler() {
         const confFill = document.getElementById('ai-mod-confidence-fill');
         const confText = document.getElementById('ai-mod-confidence-text');
 
-        if (nameInput && !nameInput.value) nameInput.value = result.label || '';
+        if (nameInput) nameInput.value = result.label || result.name || '';
         if (descInput) descInput.value = result.description || result.desc || '';
         if (catSelect && result.category) catSelect.value = result.category;
         if (modelSelect && (result.archetype || result.modelType)) {
@@ -994,12 +1038,12 @@ export function initAIModeler() {
         if (confText) confText.textContent = `${conf}% confianza · ${result.source || 'IA Generativa 3D'}`;
 
         if (statusText) {
-          const modelName = (result.archetype === 'custom_ai') ? 'Modelo 3D Único Generado por IA' : (result.label || result.archetype);
-          statusText.innerHTML = `✅ <strong>IA Esculpido 3D:</strong> ${modelName} · ${conf}% confianza · Geometría volumétrica calculada`;
+          const modelName = result.name || result.label || (result.archetype === 'custom_ai' ? 'Modelo 3D Único por IA' : result.archetype);
+          statusText.innerHTML = `✨ <strong>IA Diseñó Modelo 3D:</strong> ${modelName} · ${conf}% confianza · Geometría multicapa calculada`;
         }
         if (resultFields) resultFields.style.display = 'block';
 
-        showToast(`🤖 Modelo 3D con IA generado (${conf}%)`, 'success');
+        showToast(`✨ Modelo 3D diseñado por IA con éxito (${conf}%)`, 'success');
       }
     } catch (err) {
       console.error('AI modeler error:', err);
@@ -1033,8 +1077,8 @@ export function initAIModeler() {
     saveBtn.textContent = '⏳ Guardando en el menú...';
 
     try {
-      const ingredients = getDefaultIngredients(modelType);
-      const calMap = { tacos: 480, burger: 760, salad: 320, pizza: 820, dessert: 380, drink: 120, cocktail: 210, guacamole: 340, ribeye: 690, salmon: 540 };
+      const ingredients = (aiModIngredients && aiModIngredients.length > 0) ? aiModIngredients : getDefaultIngredients(modelType);
+      const calMap = { tacos: 480, burger: 760, salad: 320, pizza: 820, dessert: 380, drink: 120, cocktail: 210, guacamole: 340, ribeye: 690, salmon: 540, custom_ai: 560 };
 
       const newItem = addMenuItem({
         name,
@@ -1048,6 +1092,7 @@ export function initAIModeler() {
         tags: ['popular'],
         status: 'approved',
         aiDepthMap: aiModDepthMapUrl,
+        ai3dRecipe: aiMod3dRecipe,
       });
 
       if (aiModImageDataUrl) {
@@ -1056,7 +1101,7 @@ export function initAIModeler() {
 
       await syncMenuToServer(getMenuItems());
 
-      showToast(`✅ "${name}" agregado al menú con modelo 3D "${modelType}"`, 'success');
+      showToast(`✨ "${name}" agregado al menú con modelo 3D diseñado por IA`, 'success');
 
       // Reset the form
       document.getElementById('ai-mod-name').value = '';
@@ -1064,6 +1109,8 @@ export function initAIModeler() {
       document.getElementById('ai-mod-desc').value = '';
       aiModImageDataUrl = null;
       aiModDepthMapUrl = null;
+      aiMod3dRecipe = null;
+      aiModIngredients = null;
       if (previewWrap) previewWrap.style.display = 'none';
       if (uploadArea) uploadArea.style.display = 'flex';
       if (analyzeBtn) analyzeBtn.disabled = true;

@@ -2094,11 +2094,11 @@ select {
     padding: 10px 16px;
   }
 
-  /* Mobile Cart Sticky Bar */
+  /* Mobile Cart Sticky Bar with Safe Area Insets for iPhone */
   .mobile-cart-btn {
     display: flex;
     position: fixed;
-    bottom: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom, 12px));
     left: 12px;
     right: 12px;
     width: calc(100% - 24px);
@@ -2111,7 +2111,7 @@ select {
   }
 
   .assistance-fab-wrapper {
-    bottom: 74px;
+    bottom: max(76px, calc(68px + env(safe-area-inset-bottom, 10px)));
     left: 14px;
     z-index: 240;
   }
@@ -2194,6 +2194,107 @@ select {
 
   .viewer-item-price {
     font-size: 1.25rem;
+  }
+}
+
+/* Extra small mobile screens (iPhone SE, iPhone 12/13 mini, compact devices) */
+@media (max-width: 390px) {
+  .viewer-container {
+    height: 96dvh;
+    max-height: 96dvh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .viewer-header {
+    height: 38px;
+    padding: 4px 10px;
+  }
+
+  .viewer-header h3 {
+    font-size: 0.9375rem;
+  }
+
+  .viewer-close {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+  }
+
+  .viewer-canvas-wrapper {
+    min-height: 200px;
+  }
+
+  .viewer-controls {
+    top: 6px;
+    right: 6px;
+    padding: 2px 6px;
+    gap: 3px;
+  }
+
+  .viewer-control-btn {
+    height: 28px;
+    padding: 0 6px;
+    font-size: 0.7rem;
+  }
+
+  .food-lateral-indicators {
+    left: 6px;
+    max-width: 120px;
+    gap: 4px;
+  }
+
+  .lateral-ing-chip {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+    border-radius: 8px;
+  }
+
+  .viewer-details {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .viewer-item-name {
+    font-size: 0.9375rem;
+  }
+
+  .viewer-item-price {
+    font-size: 1.125rem;
+  }
+
+  .viewer-details .btn-primary {
+    padding: 8px 12px;
+    font-size: 0.8125rem;
+  }
+
+  .category-tab {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .menu-grid {
+    gap: 10px;
+  }
+
+  .menu-item-info {
+    padding: 10px 12px;
+  }
+
+  .menu-item-name {
+    font-size: 0.95rem;
+  }
+
+  .menu-item-price {
+    font-size: 1.05rem;
+  }
+
+  .cart-panel {
+    max-height: 94dvh;
+  }
+
+  .admin-modal-panel {
+    padding: 14px;
+    margin: 8px;
   }
 }
 

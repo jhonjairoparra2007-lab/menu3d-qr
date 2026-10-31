@@ -293,6 +293,7 @@ function getDefaultConfig() {
     adminPin: '1234',
     baseUrl: detectDefaultBaseUrl(),
     aiEnabled: true,
+    geminiApiKey: '',
     hfApiKey: '',
     categories: [
       { id: 'entradas', name: '🥗 Entradas', icon: '🥗' },
