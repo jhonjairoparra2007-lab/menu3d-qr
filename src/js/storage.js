@@ -39,13 +39,21 @@ export async function saveImage(id, dataUrl) {
 }
 
 export async function getImage(id) {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction(STORE_IMAGES, 'readonly');
-    const request = tx.objectStore(STORE_IMAGES).get(id);
-    request.onsuccess = () => resolve(request.result?.data || null);
-    request.onerror = () => reject(request.error);
-  });
+  // iOS Safari private mode can block IndexedDB — always try server fallback
+  try {
+    const db = await openDB();
+    const localData = await new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_IMAGES, 'readonly');
+      const request = tx.objectStore(STORE_IMAGES).get(id);
+      request.onsuccess = () => resolve(request.result?.data || null);
+      request.onerror = () => reject(request.error);
+    });
+    if (localData) return localData;
+  } catch (e) {
+    console.warn('[getImage] IndexedDB failed (possible iOS private mode):', e);
+  }
+  // Fallback: try fetching from server (works on all devices including iPhone)
+  return syncImageFromServer(id);
 }
 
 export async function deleteImage(id) {

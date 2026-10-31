@@ -586,6 +586,7 @@ function setupLighting() {
   const ambient = new THREE.AmbientLight(SCENE_CONFIG.ambientColor, SCENE_CONFIG.ambientIntensity);
   scene.add(ambient);
 
+  // Main key spotlight (restaurant overhead pendant)
   const spotLight = new THREE.SpotLight(SCENE_CONFIG.spotColor, SCENE_CONFIG.spotIntensity);
   spotLight.position.set(1.6, 5.8, 3.4);
   spotLight.angle = Math.PI / 4;
@@ -593,16 +594,30 @@ function setupLighting() {
   spotLight.decay = 1.4;
   spotLight.distance = 25;
   spotLight.castShadow = true;
-  spotLight.shadow.mapSize.width = 1024;
-  spotLight.shadow.mapSize.height = 1024;
+  spotLight.shadow.mapSize.width = 2048;
+  spotLight.shadow.mapSize.height = 2048;
   spotLight.shadow.camera.near = 1;
   spotLight.shadow.camera.far = 15;
   spotLight.shadow.bias = -0.0008;
   scene.add(spotLight);
 
+  // Cooler secondary fill from front-right
+  const frontLight = new THREE.SpotLight(0xfff8f0, 1.2);
+  frontLight.position.set(2.2, 3.5, 2.8);
+  frontLight.angle = Math.PI / 5;
+  frontLight.penumbra = 0.8;
+  frontLight.decay = 1.8;
+  frontLight.distance = 18;
+  scene.add(frontLight);
+
   const rimLight = new THREE.PointLight(SCENE_CONFIG.rimColor, SCENE_CONFIG.rimIntensity);
   rimLight.position.set(-2.8, 2.4, -3.2);
   scene.add(rimLight);
+
+  // Extra cool blue rim for depth and specular pop
+  const blueRim = new THREE.PointLight(0x4488cc, 0.5);
+  blueRim.position.set(3.2, 1.2, -2.0);
+  scene.add(blueRim);
 
   const fillLight = new THREE.PointLight(SCENE_CONFIG.fillColor, SCENE_CONFIG.fillIntensity);
   fillLight.position.set(-3.2, 1.8, 1.8);
@@ -614,12 +629,36 @@ function setupLighting() {
 }
 
 function setupEnvironment() {
-  // Slate/wooden restaurant table disk
+  // Slate/wooden restaurant table disk with wood grain texture
   const tableGeo = new THREE.CircleGeometry(7.5, 64);
+  const tableCanvas = document.createElement('canvas');
+  tableCanvas.width = 256; tableCanvas.height = 256;
+  const tCtx = tableCanvas.getContext('2d');
+  // Dark wood grain base
+  const woodGrad = tCtx.createLinearGradient(0, 0, 256, 256);
+  woodGrad.addColorStop(0, '#140f0b');
+  woodGrad.addColorStop(0.5, '#0e0d0b');
+  woodGrad.addColorStop(1, '#1a1410');
+  tCtx.fillStyle = woodGrad;
+  tCtx.fillRect(0, 0, 256, 256);
+  // Subtle wood grain lines
+  tCtx.strokeStyle = 'rgba(255,200,100,0.04)';
+  tCtx.lineWidth = 1;
+  for (let i = 0; i < 30; i++) {
+    const y = (i * 9) % 256;
+    tCtx.beginPath();
+    tCtx.moveTo(0, y);
+    tCtx.bezierCurveTo(64, y + 2, 192, y - 2, 256, y);
+    tCtx.stroke();
+  }
+  const tableTexture = new THREE.CanvasTexture(tableCanvas);
+  tableTexture.wrapS = THREE.RepeatWrapping;
+  tableTexture.wrapT = THREE.RepeatWrapping;
+  tableTexture.repeat.set(3, 3);
   const tableMat = new THREE.MeshStandardMaterial({
-    color: 0x0e0d0b,
-    metalness: 0.12,
-    roughness: 0.88,
+    map: tableTexture,
+    metalness: 0.06,
+    roughness: 0.92,
   });
   const table = new THREE.Mesh(tableGeo, tableMat);
   table.rotation.x = -Math.PI / 2;
@@ -632,7 +671,7 @@ function setupEnvironment() {
   const ringMat = new THREE.MeshStandardMaterial({
     color: 0xf59e0b,
     emissive: 0xf59e0b,
-    emissiveIntensity: 0.25,
+    emissiveIntensity: 0.35,
     metalness: 0.9,
     roughness: 0.2,
     side: THREE.DoubleSide,
@@ -650,12 +689,23 @@ function createPlate() {
 
   const group = new THREE.Group();
 
-  // Ceramic matte stoneware plate
-  const plateGeo = new THREE.CylinderGeometry(1.24, 1.15, 0.08, 64);
+  // Ceramic matte stoneware plate with subtle gloss
+  const plateGeo = new THREE.CylinderGeometry(1.24, 1.15, 0.09, 72);
+  const plateCanvas = document.createElement('canvas');
+  plateCanvas.width = 128; plateCanvas.height = 128;
+  const pCtx = plateCanvas.getContext('2d');
+  const plateGrad = pCtx.createRadialGradient(64, 64, 2, 64, 64, 90);
+  plateGrad.addColorStop(0, '#252220');
+  plateGrad.addColorStop(0.6, '#1c1a18');
+  plateGrad.addColorStop(1, '#141210');
+  pCtx.fillStyle = plateGrad;
+  pCtx.fillRect(0, 0, 128, 128);
+  const plateTex = new THREE.CanvasTexture(plateCanvas);
   const plateMat = new THREE.MeshStandardMaterial({
-    color: SCENE_CONFIG.plateColor,
-    metalness: SCENE_CONFIG.plateMetalness,
-    roughness: SCENE_CONFIG.plateRoughness,
+    map: plateTex,
+    metalness: 0.12,
+    roughness: 0.58,
+    envMapIntensity: 0.85,
   });
   const plate = new THREE.Mesh(plateGeo, plateMat);
   plate.position.y = -0.46;
@@ -663,12 +713,13 @@ function createPlate() {
   plate.receiveShadow = true;
   group.add(plate);
 
-  // Ceramic beveled rim
-  const rimGeo = new THREE.TorusGeometry(1.21, 0.032, 12, 64);
+  // Ceramic beveled rim with roughness
+  const rimGeo = new THREE.TorusGeometry(1.21, 0.036, 16, 72);
   const rimMat = new THREE.MeshStandardMaterial({
-    color: 0x221e1a,
-    metalness: 0.45,
-    roughness: 0.4,
+    color: 0x1f1c19,
+    metalness: 0.4,
+    roughness: 0.45,
+    envMapIntensity: 1.2,
   });
   const rim = new THREE.Mesh(rimGeo, rimMat);
   rim.rotation.x = Math.PI / 2;
@@ -676,18 +727,31 @@ function createPlate() {
   group.add(rim);
 
   // Delicate gold fine inner rim
-  const goldRimGeo = new THREE.TorusGeometry(1.18, 0.009, 8, 64);
+  const goldRimGeo = new THREE.TorusGeometry(1.18, 0.010, 10, 72);
   const goldRimMat = new THREE.MeshStandardMaterial({
     color: 0xf59e0b,
     emissive: 0xf59e0b,
-    emissiveIntensity: 0.3,
-    metalness: 0.95,
-    roughness: 0.15,
+    emissiveIntensity: 0.38,
+    metalness: 0.97,
+    roughness: 0.12,
+    envMapIntensity: 1.5,
   });
   const goldRim = new THREE.Mesh(goldRimGeo, goldRimMat);
   goldRim.rotation.x = Math.PI / 2;
   goldRim.position.y = -0.41;
   group.add(goldRim);
+
+  // Subtle plate shadow disk underneath
+  const shadowGeo = new THREE.CircleGeometry(1.3, 48);
+  const shadowMat = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    transparent: true,
+    opacity: 0.45,
+  });
+  const shadowDisk = new THREE.Mesh(shadowGeo, shadowMat);
+  shadowDisk.rotation.x = -Math.PI / 2;
+  shadowDisk.position.y = -0.515;
+  group.add(shadowDisk);
 
   plateMesh = group;
   scene.add(group);
