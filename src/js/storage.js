@@ -231,6 +231,7 @@ export function getConfig() {
     const parsed = data ? JSON.parse(data) : getDefaultConfig();
     // Guarantee defaults for new required fields
     if (!parsed.whatsappNumber) parsed.whatsappNumber = '573146841042';
+    if (!parsed.adminPin) parsed.adminPin = '1234';
     if (!parsed.baseUrl || (typeof window !== 'undefined' && window.location && !window.location.origin.includes('localhost') && !window.location.origin.includes('127.0.0.1') && parsed.baseUrl.includes('192.168.'))) {
       parsed.baseUrl = detectDefaultBaseUrl();
     }
@@ -242,6 +243,14 @@ export function getConfig() {
 
 export function saveConfig(config) {
   localStorage.setItem(LS_CONFIG_KEY, JSON.stringify(config));
+  // BroadcastChannel for cross-tab sync
+  try {
+    const bc = new BroadcastChannel('menu3d_sync');
+    bc.postMessage({ type: 'config-update', config });
+    bc.close();
+  } catch {
+    // BroadcastChannel unsupported fallback
+  }
   // Also push to server for cross-device sync
   syncConfigToServer(config);
 }
@@ -252,6 +261,7 @@ function getDefaultConfig() {
     currency: '$',
     tableCount: 20,
     whatsappNumber: '573146841042',
+    adminPin: '1234',
     baseUrl: detectDefaultBaseUrl(),
     aiEnabled: true,
     hfApiKey: '',

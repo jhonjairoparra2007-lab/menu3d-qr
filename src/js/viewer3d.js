@@ -1980,35 +1980,67 @@ function loadCurvedPhotoPlane(imageUrl) {
       (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace;
         const aspect = texture.image.width / texture.image.height;
-        const width = 2.0;
+        const width = 1.9;
         const height = width / aspect;
 
-        const geometry = new THREE.PlaneGeometry(width, height, 32, 32);
+        const photoGroup = new THREE.Group();
+
+        // 1. Ceramic / Porcelain Display Serving Platter Base
+        const plateRadius = Math.max(width, height) * 0.62;
+        const plateGeo = new THREE.CylinderGeometry(plateRadius, plateRadius * 0.94, 0.08, 48);
+        const plateMat = new THREE.MeshStandardMaterial({
+          color: 0x18181b,
+          roughness: 0.22,
+          metalness: 0.08,
+        });
+        const plateMesh = new THREE.Mesh(plateGeo, plateMat);
+        plateMesh.position.y = -0.06;
+        plateMesh.receiveShadow = true;
+        plateMesh.castShadow = true;
+        photoGroup.add(plateMesh);
+
+        // Gold / Copper decorative rim trim
+        const rimGeo = new THREE.TorusGeometry(plateRadius * 0.98, 0.015, 16, 48);
+        const rimMat = new THREE.MeshStandardMaterial({
+          color: 0xd97706,
+          roughness: 0.3,
+          metalness: 0.85,
+        });
+        const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+        rimMesh.rotation.x = Math.PI / 2;
+        rimMesh.position.y = -0.018;
+        photoGroup.add(rimMesh);
+
+        // 2. High-res Curved Food Relief with Parabolic Volumetric Falloff
+        const geometry = new THREE.PlaneGeometry(width, height, 48, 48);
         const positions = geometry.attributes.position;
         for (let i = 0; i < positions.count; i++) {
           const x = positions.getX(i);
           const y = positions.getY(i);
-          const dist = Math.sqrt(x * x + y * y);
-          positions.setZ(i, Math.cos(dist * 0.8) * 0.12);
+          const distNorm = Math.sqrt((x / (width * 0.5)) ** 2 + (y / (height * 0.5)) ** 2);
+          // Parabolic dome relief curve
+          const dome = Math.max(0, 1 - distNorm * distNorm) * 0.18;
+          positions.setZ(i, dome);
         }
         geometry.computeVertexNormals();
 
         const material = new THREE.MeshStandardMaterial({
           map: texture,
           side: THREE.DoubleSide,
-          roughness: 0.4,
-          metalness: 0.05,
+          roughness: 0.35,
+          metalness: 0.04,
         });
 
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.position.y = 0.15;
-        mesh.rotation.x = -Math.PI * 0.35;
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
+        const foodMesh = new THREE.Mesh(geometry, material);
+        foodMesh.position.y = 0.05;
+        foodMesh.rotation.x = -Math.PI * 0.35;
+        foodMesh.castShadow = true;
+        foodMesh.receiveShadow = true;
+        photoGroup.add(foodMesh);
 
-        currentFoodGroup = mesh;
-        scene.add(mesh);
-        animateEntrance(mesh);
+        currentFoodGroup = photoGroup;
+        scene.add(photoGroup);
+        animateEntrance(photoGroup);
         resolve();
       },
       undefined,

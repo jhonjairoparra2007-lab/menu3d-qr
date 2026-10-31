@@ -7,11 +7,16 @@ import QRCode from 'qrcode';
 import {
   getConfig, saveConfig, seedDemoData,
   addMenuItem, saveImage, getDefaultIngredients, detectModelType, getMenuItems,
+  initialSyncFromServer, syncMenuToServer,
 } from './storage.js';
+import { detectFood3DModel } from './ai.js';
 import { showToast } from './toast.js';
 
 // ---- Initialize ----
 document.addEventListener('DOMContentLoaded', async () => {
+  // Sync latest menu and settings from server for cross-device consistency
+  await initialSyncFromServer();
+
   // Seed demo data on first visit
   await seedDemoData();
 
@@ -201,74 +206,98 @@ function downloadQR() {
 }
 
 async function generateBatchQR() {
-  const name = document.getElementById('restaurant-name').value || 'Mi Restaurante';
+  const name = document.getElementById('restaurant-name')?.value.trim() || 'Mi Restaurante';
   const config = getConfig();
   const tableCount = config.tableCount || 20;
 
-  showToast(`Generando QR para ${tableCount} mesas...`, 'info');
+  const modal = document.getElementById('batch-qr-modal');
+  const grid = document.getElementById('batch-qr-grid');
+  const countText = document.getElementById('batch-count-text');
+  const title = document.getElementById('batch-modal-title');
+  const closeBtn = document.getElementById('batch-qr-close');
+  const backdrop = document.getElementById('batch-qr-backdrop');
+  const printBtn = document.getElementById('batch-print-btn');
 
-  // Create a container for all QR codes
-  const printWindow = window.open('', '_blank');
-  if (!printWindow) {
-    showToast('Permite las ventanas emergentes para esta función', 'warning');
+  if (!modal || !grid) {
+    showToast('Modal de QR no disponible', 'error');
     return;
   }
 
-  printWindow.document.write(`
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <title>QR Codes - ${name}</title>
-      <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; padding: 20px; background: #fff; }
-        h1 { text-align: center; margin-bottom: 20px; color: #333; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
-        .qr-card { text-align: center; padding: 15px; border: 2px solid #eee; border-radius: 12px; page-break-inside: avoid; }
-        .qr-card h3 { margin: 8px 0 4px; font-size: 16px; color: #333; }
-        .qr-card p { font-size: 12px; color: #666; }
-        canvas { max-width: 200px; height: auto; }
-        @media print { .no-print { display: none; } }
-      </style>
-    </head>
-    <body>
-      <h1>🍽️ ${name} - Códigos QR por Mesa</h1>
-      <button class="no-print" onclick="window.print()" style="display:block;margin:0 auto 20px;padding:10px 24px;background:#f59e0b;border:none;border-radius:8px;font-size:16px;cursor:pointer;font-weight:bold;">
-        🖨️ Imprimir Todo
-      </button>
-      <div class="grid" id="qr-grid"></div>
-    </body>
-    </html>
-  `);
+  showToast(`Generando QR para ${tableCount} mesas...`, 'info');
 
-  const grid = printWindow.document.getElementById('qr-grid');
+  if (title) title.innerHTML = `🖨️ Códigos QR - ${name}`;
+  if (countText) countText.textContent = `${tableCount} mesas configuradas`;
+
+  // Clear previous grid items
+  grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 30px;"><div class="loading-spinner"></div><p style="margin-top:10px; color:var(--text-secondary);">Generando tarjetas QR de alta resolución...</p></div>';
+
+  modal.classList.add('active');
+  modal.style.display = 'flex';
+
+  const closeModal = () => {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  };
+
+  closeBtn?.addEventListener('click', closeModal, { once: true });
+  backdrop?.addEventListener('click', closeModal, { once: true });
+
   const inputBaseUrl = document.getElementById('qr-base-url')?.value.trim();
   const baseUrl = (inputBaseUrl || config.baseUrl || 'http://192.168.1.35:3000').replace(/\/+$/, '');
 
+  // Give DOM a frame to show modal
+  await new Promise(r => setTimeout(r, 50));
+  grid.innerHTML = '';
+
   for (let i = 1; i <= tableCount; i++) {
     const menuUrl = `${baseUrl}/menu.html?table=${i}&restaurant=${encodeURIComponent(name)}`;
-    const card = printWindow.document.createElement('div');
-    card.className = 'qr-card';
+    const card = document.createElement('div');
+    card.className = 'batch-qr-card';
 
-    const canvas = printWindow.document.createElement('canvas');
+    const header = document.createElement('div');
+    header.className = 'batch-qr-card-header';
+    header.innerHTML = `
+      <div style="font-size: 1.15rem; font-weight: 800; color: #111827;">Mesa ${i}</div>
+      <div style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">${name}</div>
+    `;
+
+    const canvas = document.createElement('canvas');
     await QRCode.toCanvas(canvas, menuUrl, {
       width: 200,
       margin: 1,
+      color: { dark: '#0a0a0a', light: '#ffffff' },
       errorCorrectionLevel: 'M',
     });
 
-    card.appendChild(canvas);
-    card.innerHTML += `<h3>Mesa ${i}</h3><p>${name}</p>`;
+    const qrWrap = document.createElement('div');
+    qrWrap.style.display = 'flex';
+    qrWrap.style.justifyContent = 'center';
+    qrWrap.style.margin = '8px 0';
+    qrWrap.appendChild(canvas);
+
+    const footer = document.createElement('div');
+    footer.className = 'batch-qr-card-footer';
+    footer.innerHTML = `
+      <div style="font-size: 0.7rem; font-weight: 600; color: #d97706; text-transform: uppercase; letter-spacing: 0.5px;">✨ Menú 3D Interactivo</div>
+      <div style="font-size: 0.65rem; color: #9ca3af; word-break: break-all; margin-top: 2px;">${menuUrl}</div>
+    `;
+
+    card.appendChild(header);
+    card.appendChild(qrWrap);
+    card.appendChild(footer);
     grid.appendChild(card);
   }
 
-  showToast(`${tableCount} códigos QR generados`, 'success');
+  printBtn?.addEventListener('click', () => {
+    window.print();
+  }, { once: true });
+
+  showToast(`¡${tableCount} códigos QR listos para imprimir!`, 'success');
 }
 
 // =============================================
 // ADMIN QUICK-ADD PANEL LOGIC
 // =============================================
-const ADMIN_PIN = '1234';
 let quickAddImageDataUrl = null;
 let adminUnlocked = false;
 
@@ -280,7 +309,8 @@ function initAdminQuickAdd() {
   const pinError = document.getElementById('admin-pin-error');
 
   pinSubmit?.addEventListener('click', () => {
-    if (pinInput?.value === ADMIN_PIN) {
+    const currentPin = getConfig().adminPin || '1234';
+    if (pinInput?.value === currentPin) {
       adminUnlocked = true;
       document.getElementById('admin-pin-gate').style.display = 'none';
       document.getElementById('admin-quick-form').style.display = 'block';
@@ -363,13 +393,35 @@ function handleQuickImageFile(file) {
     return;
   }
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = async (e) => {
     quickAddImageDataUrl = e.target.result;
     document.getElementById('quick-upload-placeholder').style.display = 'none';
     const preview = document.getElementById('quick-upload-preview');
     if (preview) preview.style.display = 'block';
     const img = document.getElementById('quick-preview-img');
     if (img) img.src = quickAddImageDataUrl;
+
+    // AI 3D Model Archetype Detection
+    try {
+      const nameVal = document.getElementById('quick-item-name')?.value || '';
+      const aiResult = await detectFood3DModel(quickAddImageDataUrl, nameVal);
+      if (aiResult && aiResult.archetype) {
+        const modelSelect = document.getElementById('quick-item-model');
+        if (modelSelect) modelSelect.value = aiResult.archetype;
+
+        const catSelect = document.getElementById('quick-item-category');
+        if (catSelect && aiResult.category) catSelect.value = aiResult.category;
+
+        const descInput = document.getElementById('quick-item-desc');
+        if (descInput && !descInput.value.trim() && aiResult.description) {
+          descInput.value = aiResult.description;
+        }
+
+        showToast(`🤖 IA detectó: ${aiResult.label || aiResult.archetype} (${aiResult.confidence}%) · Modelo 3D configurado`, 'success');
+      }
+    } catch (err) {
+      console.warn('AI 3D detection error in quick-add:', err);
+    }
   };
   reader.readAsDataURL(file);
 }
@@ -399,16 +451,23 @@ async function handleQuickAddSubmit(e) {
   const submitBtn = document.getElementById('quick-add-submit-btn');
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.textContent = '⏳ Guardando...';
+    submitBtn.textContent = '⏳ Guardando y Sincronizando...';
   }
 
   try {
+    const ingredients = getDefaultIngredients(modelType);
+    const calMap = { tacos: 480, burger: 760, salad: 320, pizza: 820, dessert: 380, drink: 120, cocktail: 210, guacamole: 340, ribeye: 690, salmon: 540 };
+
     const newItem = addMenuItem({
       name,
       description: desc,
       category,
       modelType,
       price,
+      ingredients,
+      calories: calMap[modelType] || 450,
+      prepTime: '12-18 min',
+      tags: ['popular'],
       status: 'approved',
     });
 
@@ -437,7 +496,10 @@ async function handleQuickAddSubmit(e) {
       await saveImage(newItem.id, canvas.toDataURL('image/jpeg', 0.85));
     }
 
-    showToast(`"${name}" agregado al menú ✅ — ya visible al escanear el QR`, 'success');
+    // Force instant server sync for cross-device visibility
+    await syncMenuToServer(getMenuItems());
+
+    showToast(`"${name}" agregado al menú ✅ — visible al escanear el QR`, 'success');
 
     // Reset form
     document.getElementById('quick-add-form')?.reset();

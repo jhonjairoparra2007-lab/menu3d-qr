@@ -6,10 +6,11 @@
   <title>Panel Admin - Menu3D QR</title>
   <meta name="description" content="Panel de administración para gestionar el menú digital, fotos, pedidos y configuración." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>" />
-  <script type="module" crossorigin src="/assets/admin-IeWhrAMC.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/toast-i2GfW-yM.js">
+  <script type="module" crossorigin src="/assets/admin-BCUK0XDy.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-ByD1-Rg4.js">
+  <link rel="modulepreload" crossorigin href="/assets/ai-Qnu8M2Pr.js">
   <link rel="modulepreload" crossorigin href="/assets/audio-CEdIckWR.js">
-  <link rel="stylesheet" crossorigin href="/assets/toast-B1sOJPzu.css">
+  <link rel="stylesheet" crossorigin href="/assets/toast-FJOzSESM.css">
 </head>
 <body>
   <div class="bg-pattern"></div>
@@ -143,14 +144,28 @@
       <!-- ===== QR Section ===== -->
       <section id="section-qr" class="admin-section" style="display: none;">
         <div class="admin-header">
-          <h1>📱 Códigos QR</h1>
+          <h1>📱 Códigos QR para Mesas</h1>
         </div>
         <div class="card card-glass">
-          <div class="card-body text-center">
-            <p class="text-muted" style="margin-bottom: var(--space-lg);">
-              Genera códigos QR desde la página principal para cada mesa de tu restaurante.
+          <div class="card-body">
+            <p class="text-muted" style="margin-bottom: var(--space-md);">
+              Genera los códigos QR que van impresos o pegados en las mesas de tu restaurante.
             </p>
-            <a href="/#qr-generator" class="btn btn-primary btn-lg">📱 Ir al Generador de QR</a>
+            <div class="flex gap-md flex-wrap items-center" style="margin-bottom: var(--space-lg);">
+              <button class="btn btn-primary btn-lg" id="admin-batch-qr-btn">
+                🖨️ Generar Códigos QR para Todas las Mesas
+              </button>
+              <a href="/#qr-generator" class="btn btn-secondary btn-lg" target="_blank">
+                📱 Abrir Generador Avanzado
+              </a>
+            </div>
+            <div id="admin-batch-preview-area" style="display: none; margin-top: var(--space-lg);">
+              <div class="flex justify-between items-center" style="margin-bottom: var(--space-md);">
+                <h3 class="heading-sm">Vista Previa de Códigos QR para Imprimir</h3>
+                <button class="btn btn-primary" id="admin-print-all-btn">🖨️ Imprimir Todas</button>
+              </div>
+              <div class="batch-qr-grid" id="admin-qr-grid"></div>
+            </div>
           </div>
         </div>
       </section>
@@ -158,11 +173,11 @@
       <!-- ===== Settings Section ===== -->
       <section id="section-settings" class="admin-section" style="display: none;">
         <div class="admin-header">
-          <h1>⚙️ Configuración</h1>
+          <h1>⚙️ Configuración del Restaurante</h1>
         </div>
 
         <div class="settings-section">
-          <h3>🏪 Restaurante</h3>
+          <h3>🏪 Datos del Negocio</h3>
           <div class="flex gap-md" style="flex-wrap: wrap;">
             <div class="form-group" style="flex: 1; min-width: 200px;">
               <label for="cfg-name">Nombre</label>
@@ -181,6 +196,10 @@
             <div class="form-group" style="flex: 0 0 120px;">
               <label for="cfg-tables">Num. Mesas</label>
               <input type="number" id="cfg-tables" min="1" max="200" />
+            </div>
+            <div class="form-group" style="flex: 0 0 140px;">
+              <label for="cfg-admin-pin">🔒 PIN Admin</label>
+              <input type="text" id="cfg-admin-pin" maxlength="6" placeholder="1234" value="1234" />
             </div>
           </div>
 
@@ -203,25 +222,30 @@
         </div>
 
         <div class="settings-section">
-          <h3>🤖 Integración IA (Hugging Face)</h3>
+          <h3>🤖 Integración IA para Modelado 3D & Moderación</h3>
           <p class="text-muted" style="font-size: 0.875rem; margin-bottom: var(--space-md);">
-            Configura tu API Key de <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face</a> 
-            para habilitar la moderación automática de imágenes y generación de descripciones con IA.
-            Es gratuita con límite de uso.
+            Configura tu API Key de <a href="https://huggingface.co/settings/tokens" target="_blank" style="color:var(--color-primary-light);text-decoration:underline;">Hugging Face</a> 
+            para habilitar el modelado 3D automático por IA al subir fotos, moderación y sugerencias.
+            Es gratuita y fácil de crear.
           </p>
           <div class="flex gap-md items-end" style="flex-wrap: wrap;">
             <div class="form-group" style="flex: 1; min-width: 250px;">
-              <label for="cfg-hf-key">API Key de Hugging Face</label>
+              <label for="cfg-hf-key">API Key de Hugging Face (hf_...)</label>
               <input type="password" id="cfg-hf-key" placeholder="hf_xxxxxxxxxxxxxxxxxxxx" />
             </div>
             <div class="form-group" style="flex: 0 0 auto;">
-              <label>&nbsp;</label>
-              <div class="flex gap-sm items-center">
+              <button type="button" class="btn btn-secondary" id="btn-validate-hf-key" style="margin-bottom: 2px;">
+                🔑 Probar y Validar API Key
+              </button>
+            </div>
+            <div class="form-group" style="flex: 0 0 auto;">
+              <div class="flex gap-sm items-center" style="margin-bottom: 8px;">
                 <input type="checkbox" id="cfg-ai-enabled" style="width: auto;" />
-                <label for="cfg-ai-enabled" style="text-transform: none; font-size: 0.875rem; cursor: pointer;">Habilitar IA</label>
+                <label for="cfg-ai-enabled" style="text-transform: none; font-size: 0.875rem; cursor: pointer;">Habilitar IA 3D</label>
               </div>
             </div>
           </div>
+          <div id="hf-key-validation-status" style="margin-top: 8px; font-size: 0.8125rem; display: none;"></div>
         </div>
 
         <div class="flex gap-md" style="margin-top: var(--space-lg);">

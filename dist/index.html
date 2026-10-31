@@ -9,9 +9,10 @@
     content="Sistema de menú digital con QR, visualización 3D de platillos, moderación con IA y pedidos en línea para restaurantes." />
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍽️</text></svg>" />
-  <script type="module" crossorigin src="/assets/main-DcZY1fet.js"></script>
-  <link rel="modulepreload" crossorigin href="/assets/toast-i2GfW-yM.js">
-  <link rel="stylesheet" crossorigin href="/assets/toast-B1sOJPzu.css">
+  <script type="module" crossorigin src="/assets/main-DtKNC4W8.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/toast-ByD1-Rg4.js">
+  <link rel="modulepreload" crossorigin href="/assets/ai-Qnu8M2Pr.js">
+  <link rel="stylesheet" crossorigin href="/assets/toast-FJOzSESM.css">
 </head>
 
 <body>
@@ -341,6 +342,33 @@
       </p>
     </div>
   </footer>
+
+  <!-- Modal Batch QR Generator (Impresión para Todas las Mesas) -->
+  <div class="order-modal" id="batch-qr-modal">
+    <div class="viewer-backdrop" id="batch-qr-backdrop"></div>
+    <div class="order-panel" style="max-width: 950px; width: 95%; max-height: 92vh; overflow-y: auto;">
+      <div style="padding: var(--space-lg);">
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-md);">
+          <div>
+            <h2 class="heading-sm" id="batch-modal-title">🖨️ Códigos QR para Todas las Mesas</h2>
+            <p class="text-muted" style="font-size: 0.8125rem;">Listos para imprimir y colocar sobre las mesas de tu restaurante.</p>
+          </div>
+          <button class="viewer-close" id="batch-qr-close" style="position:static;">✕</button>
+        </div>
+
+        <div class="flex gap-sm items-center flex-wrap" style="margin-bottom: var(--space-lg); padding: 12px; background: rgba(255,255,255,0.04); border-radius: 8px;">
+          <button class="btn btn-primary" id="batch-print-btn">
+            🖨️ Imprimir Todas las Mesas
+          </button>
+          <span class="text-muted" id="batch-count-text" style="font-size: 0.8125rem; margin-left: auto;"></span>
+        </div>
+
+        <div class="batch-qr-grid" id="batch-qr-grid">
+          <!-- Dynamically populated cards -->
+        </div>
+      </div>
+    </div>
+  </div>
 
 </body>
 

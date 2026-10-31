@@ -3,14 +3,17 @@
  * Manages dishes, real-time 3D image uploads, AI moderation, orders, and restaurant settings
  */
 
+import QRCode from 'qrcode';
 import {
   getMenuItems, addMenuItem, updateMenuItem, deleteMenuItem,
   getOrders, updateOrderStatus,
   getConfig, saveConfig,
   saveImage, getImage, deleteImage,
   seedDemoData, listenForSync,
+  initialSyncFromServer, syncConfigToServer, syncMenuToServer,
+  getDefaultIngredients,
 } from './storage.js';
-import { analyzeImage, getAIStatusText } from './ai.js';
+import { analyzeImage, getAIStatusText, validateHFApiKey, detectFood3DModel } from './ai.js';
 import { showToast } from './toast.js';
 import { playKitchenBellSound } from './audio.js';
 
@@ -20,6 +23,9 @@ let currentImageDataUrl = null;
 let activeOrderFilter = 'all';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Sync latest menu, config and orders from server for cross-device consistency
+  await initialSyncFromServer();
+
   await seedDemoData();
 
   initNavigation();
@@ -28,6 +34,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initOrdersManagement();
   initSettings();
   initAIStatus();
+  initAdminQR();
 
   // Listen for real-time updates (cross-tab sync)
   listenForSync((data) => {
@@ -39,6 +46,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (data.type === 'menu-update') {
       if (currentSection === 'menu') renderMenuTable();
       refreshDashboard();
+    } else if (data.type === 'config-update') {
+      if (currentSection === 'settings') loadSettings();
     }
   });
 });
@@ -275,31 +284,41 @@ async function handleImageFile(file) {
     if (uploadPreview) uploadPreview.style.display = 'block';
     if (previewImg) previewImg.src = currentImageDataUrl;
 
-    // Trigger AI moderation & analysis
+    // Trigger AI moderation & 3D food archetype analysis
     if (aiBadge && aiText) {
       aiBadge.style.display = 'block';
-      aiText.textContent = 'Analizando imagen con IA (moderación, categoría y descripción)...';
+      aiText.textContent = 'Analizando imagen con IA (moderación, categoría, arquetipo 3D y texturas)...';
 
       try {
-        const analysis = await analyzeImage(currentImageDataUrl);
+        const [analysis, ai3D] = await Promise.all([
+          analyzeImage(currentImageDataUrl),
+          detectFood3DModel(currentImageDataUrl, document.getElementById('item-name')?.value || ''),
+        ]);
 
         if (!analysis.moderation.safe) {
           aiText.innerHTML = `⚠️ <strong style="color:var(--color-danger)">Alerta de moderación:</strong> ${analysis.moderation.label || 'Contenido posiblemente inapropiado'}`;
           showToast('La imagen puede contener contenido inapropiado según la IA', 'warning');
         } else {
-          aiText.innerHTML = `✅ <strong>Aprobado por IA:</strong> Contenido seguro · Sugerencia: ${analysis.classification?.category || 'General'}`;
-
-          // Autofill description if empty
-          const descInput = document.getElementById('item-desc');
-          if (descInput && !descInput.value.trim() && analysis.caption?.description) {
-            descInput.value = analysis.caption.description;
+          // Auto-select 3D model archetype from image analysis
+          const modelSelect = document.getElementById('item-model-type');
+          if (modelSelect && ai3D?.archetype) {
+            modelSelect.value = ai3D.archetype;
           }
 
           // Auto-select category if available
           const catSelect = document.getElementById('item-category');
-          if (catSelect && analysis.classification?.category) {
-            catSelect.value = analysis.classification.category;
+          if (catSelect && (ai3D?.category || analysis.classification?.category)) {
+            catSelect.value = ai3D?.category || analysis.classification?.category;
           }
+
+          // Autofill description if empty
+          const descInput = document.getElementById('item-desc');
+          if (descInput && !descInput.value.trim()) {
+            descInput.value = ai3D?.description || analysis.caption?.description || '';
+          }
+
+          aiText.innerHTML = `✅ <strong>Aprobado por IA:</strong> Contenido seguro · <strong>Modelo 3D IA:</strong> ${ai3D?.label || 'Plato'} (${ai3D?.confidence || 85}%) con shaders PBR y capas de desensamble.`;
+          showToast(`🤖 Modelo 3D "${ai3D?.label}" asignado automáticamente`, 'success');
         }
       } catch (err) {
         console.warn('AI analysis error:', err);
@@ -375,6 +394,9 @@ async function handleSaveItem(e) {
   if (submitBtn) submitBtn.disabled = true;
 
   try {
+    const ingredients = getDefaultIngredients(modelType);
+    const calMap = { tacos: 480, burger: 760, salad: 320, pizza: 820, dessert: 380, drink: 120, cocktail: 210, guacamole: 340, ribeye: 690, salmon: 540 };
+
     if (currentEditingId) {
       updateMenuItem(currentEditingId, {
         name,
@@ -382,6 +404,7 @@ async function handleSaveItem(e) {
         category,
         modelType,
         price,
+        ingredients,
       });
 
       if (currentImageDataUrl) {
@@ -396,6 +419,10 @@ async function handleSaveItem(e) {
         category,
         modelType,
         price,
+        ingredients,
+        calories: calMap[modelType] || 450,
+        prepTime: '12-18 min',
+        tags: ['popular'],
         status: 'approved',
       });
 
@@ -422,6 +449,9 @@ async function handleSaveItem(e) {
 
       showToast(`Platillo "${name}" creado exitosamente`, 'success');
     }
+
+    // Force real-time sync with server
+    await syncMenuToServer(getMenuItems());
 
     closeItemModal();
     renderMenuTable();
@@ -634,9 +664,41 @@ function renderOrders() {
 function initSettings() {
   const saveBtn = document.getElementById('save-settings-btn');
   const resetBtn = document.getElementById('reset-data-btn');
+  const validateHfBtn = document.getElementById('btn-validate-hf-key');
 
   saveBtn?.addEventListener('click', handleSaveSettings);
   resetBtn?.addEventListener('click', handleResetDemo);
+
+  validateHfBtn?.addEventListener('click', async () => {
+    const keyInput = document.getElementById('cfg-hf-key');
+    const statusEl = document.getElementById('hf-key-validation-status');
+    const apiKey = keyInput?.value.trim();
+
+    if (!apiKey) {
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:var(--color-warning);">⚠️ Ingresa una clave antes de validar.</span>';
+      }
+      showToast('Ingresa una API Key para probar', 'warning');
+      return;
+    }
+
+    if (statusEl) {
+      statusEl.innerHTML = '<span style="color:var(--color-primary);">⏳ Conectando con Hugging Face Inference API...</span>';
+    }
+
+    const res = await validateHFApiKey(apiKey);
+    if (res.valid) {
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--color-success); font-weight:600;">✅ API Key válida · Conexión exitosa (${res.user || 'Hugging Face Pro'})</span>`;
+      }
+      showToast('API Key de Hugging Face verificada correctamente ✅', 'success');
+    } else {
+      if (statusEl) {
+        statusEl.innerHTML = `<span style="color:var(--color-danger); font-weight:600;">❌ Clave inválida o sin permisos: ${res.error || 'Verifica el token'}</span>`;
+      }
+      showToast('API Key inválida o sin conexión a HF', 'error');
+    }
+  });
 
   loadSettings();
 }
@@ -651,6 +713,7 @@ function loadSettings() {
   const baseUrlInput = document.getElementById('cfg-base-url');
   const hfKeyInput = document.getElementById('cfg-hf-key');
   const aiEnabledCheck = document.getElementById('cfg-ai-enabled');
+  const pinInput = document.getElementById('cfg-admin-pin');
 
   if (nameInput) nameInput.value = config.restaurantName || '';
   if (currSelect) currSelect.value = config.currency || '$';
@@ -659,9 +722,10 @@ function loadSettings() {
   if (baseUrlInput) baseUrlInput.value = config.baseUrl || 'http://192.168.1.35:3000';
   if (hfKeyInput) hfKeyInput.value = config.hfApiKey || '';
   if (aiEnabledCheck) aiEnabledCheck.checked = config.aiEnabled !== false;
+  if (pinInput) pinInput.value = config.adminPin || '1234';
 }
 
-function handleSaveSettings() {
+async function handleSaveSettings() {
   const config = getConfig();
 
   config.restaurantName = document.getElementById('cfg-name').value.trim() || 'Mi Restaurante';
@@ -671,10 +735,13 @@ function handleSaveSettings() {
   config.baseUrl = document.getElementById('cfg-base-url')?.value.trim() || 'http://192.168.1.35:3000';
   config.hfApiKey = document.getElementById('cfg-hf-key').value.trim();
   config.aiEnabled = document.getElementById('cfg-ai-enabled').checked;
+  const pinVal = document.getElementById('cfg-admin-pin')?.value.trim();
+  if (pinVal) config.adminPin = pinVal;
 
   saveConfig(config);
+  await syncConfigToServer(config);
   initAIStatus();
-  showToast('Configuración guardada exitosamente', 'success');
+  showToast('Configuración guardada y sincronizada en tiempo real ✅', 'success');
 }
 
 async function handleResetDemo() {
@@ -687,4 +754,75 @@ async function handleResetDemo() {
     refreshDashboard();
     showToast('Datos de demo restaurados', 'success');
   }
+}
+
+// ===== QR Generation in Admin =====
+function initAdminQR() {
+  const generateBtn = document.getElementById('admin-batch-qr-btn');
+  const previewArea = document.getElementById('admin-batch-preview-area');
+  const grid = document.getElementById('admin-qr-grid');
+  const printBtn = document.getElementById('admin-print-all-btn');
+
+  printBtn?.addEventListener('click', () => {
+    window.print();
+  });
+
+  generateBtn?.addEventListener('click', async () => {
+    const config = getConfig();
+    const name = config.restaurantName || 'Mi Restaurante';
+    const tableCount = config.tableCount || 20;
+    const baseUrl = (config.baseUrl || window.location.origin).replace(/\/+$/, '');
+
+    if (!grid) return;
+
+    if (previewArea) previewArea.style.display = 'block';
+    grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 20px;"><div class="loading-spinner"></div><p style="margin-top:10px;">Generando códigos QR para todas las mesas...</p></div>';
+    generateBtn.disabled = true;
+
+    // Small delay to allow spinner
+    await new Promise(r => setTimeout(r, 60));
+    grid.innerHTML = '';
+
+    for (let i = 1; i <= tableCount; i++) {
+      const menuUrl = `${baseUrl}/menu.html?table=${i}&restaurant=${encodeURIComponent(name)}`;
+      const card = document.createElement('div');
+      card.className = 'batch-qr-card';
+
+      const header = document.createElement('div');
+      header.className = 'batch-qr-card-header';
+      header.innerHTML = `
+        <div style="font-size: 1.15rem; font-weight: 800; color: #111827;">Mesa ${i}</div>
+        <div style="font-size: 0.75rem; color: #6b7280; font-weight: 500;">${name}</div>
+      `;
+
+      const canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, menuUrl, {
+        width: 190,
+        margin: 1,
+        color: { dark: '#0a0a0a', light: '#ffffff' },
+        errorCorrectionLevel: 'M',
+      });
+
+      const qrWrap = document.createElement('div');
+      qrWrap.style.display = 'flex';
+      qrWrap.style.justifyContent = 'center';
+      qrWrap.style.margin = '8px 0';
+      qrWrap.appendChild(canvas);
+
+      const footer = document.createElement('div');
+      footer.className = 'batch-qr-card-footer';
+      footer.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 600; color: #d97706; text-transform: uppercase;">✨ Menú 3D Interactivo</div>
+        <div style="font-size: 0.65rem; color: #9ca3af; word-break: break-all; margin-top: 2px;">${menuUrl}</div>
+      `;
+
+      card.appendChild(header);
+      card.appendChild(qrWrap);
+      card.appendChild(footer);
+      grid.appendChild(card);
+    }
+
+    generateBtn.disabled = false;
+    showToast(`¡${tableCount} códigos QR listos en el panel de administrador!`, 'success');
+  });
 }

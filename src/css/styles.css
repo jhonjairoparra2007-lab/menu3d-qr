@@ -2762,6 +2762,113 @@ select {
   transform: scale(0.92);
 }
 
+/* =============================================
+   BATCH QR CODES & PRINT STYLES
+   ============================================= */
+.batch-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.batch-qr-card {
+  background: #ffffff;
+  color: #111111;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  border: 2px solid #e5e7eb;
+}
+
+.batch-qr-card canvas {
+  width: 170px !important;
+  height: 170px !important;
+  display: block;
+  margin: 0 auto 10px auto;
+}
+
+.batch-qr-card h3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: #111827;
+  margin: 4px 0 2px 0;
+  font-weight: 700;
+}
+
+.batch-qr-card .restaurant-tag {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #d97706;
+  margin-bottom: 4px;
+}
+
+.batch-qr-card .scan-hint {
+  font-size: 0.72rem;
+  color: #6b7280;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+
+.batch-qr-card .no-print {
+  margin-top: auto;
+  font-size: 0.75rem;
+  color: #2563eb;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #batch-qr-modal,
+  #batch-qr-modal *,
+  #admin-batch-preview-area,
+  #admin-batch-preview-area * {
+    visibility: visible;
+  }
+  #batch-qr-modal,
+  #admin-batch-preview-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+  }
+  .order-panel {
+    max-width: 100% !important;
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print,
+  .viewer-backdrop,
+  .viewer-close,
+  #batch-print-btn,
+  #admin-print-all-btn {
+    display: none !important;
+  }
+  .batch-qr-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 20px !important;
+  }
+  .batch-qr-card {
+    border: 2px dashed #9ca3af !important;
+    box-shadow: none !important;
+  }
+}
+
 /* ===== Confetti Canvas ===== */
 #confetti-canvas {
   position: fixed;

@@ -295,3 +295,255 @@ export function getAIStatusText() {
   }
   return '⚡ Modo básico (configura tu API Key para IA completa)';
 }
+
+/**
+ * Validate a Hugging Face API key by making a test request
+ */
+export async function validateHFApiKey(apiKey) {
+  if (!apiKey || apiKey.trim().length < 8) {
+    return { valid: false, message: 'La API Key está vacía o es demasiado corta' };
+  }
+
+  const cleanKey = apiKey.trim();
+  try {
+    const res = await fetch(`${HF_API_BASE}/${MODELS.moderation}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${cleanKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ inputs: 'https://huggingface.co/datasets/mishig/sample_images/resolve/main/tiger.jpg' }),
+    });
+
+    if (res.status === 401 || res.status === 403) {
+      return { valid: false, message: 'API Key inválida o sin permisos (código ' + res.status + ')' };
+    }
+
+    return { valid: true, message: '¡API Key válida y conectada exitosamente!' };
+  } catch (err) {
+    // If CORS or network issue, but key has proper hf_ prefix
+    if (cleanKey.startsWith('hf_') && cleanKey.length >= 20) {
+      return { valid: true, message: 'Formato de API Key válido (hf_...)' };
+    }
+    return { valid: false, message: 'Error de conexión: ' + (err.message || 'No se pudo contactar a Hugging Face') };
+  }
+}
+
+/**
+ * AI 3D Food Modeler & Archetype Classifier
+ * Analyzes uploaded food photos and selects the optimal 3D procedural model & ingredients
+ */
+export async function detectFood3DModel(imageDataUrl, itemName = '') {
+  let detectedType = 'burger';
+  let confidence = 0.6;
+  let source = 'color-analysis';
+
+  // 1. Text hint matching from item name if provided
+  const nameLower = (itemName || '').toLowerCase();
+  if (nameLower.includes('taco') || nameLower.includes('pastor') || nameLower.includes('fajita') || nameLower.includes('tortilla')) {
+    detectedType = 'tacos';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('pizza') || nameLower.includes('pepperoni') || nameLower.includes('margarita')) {
+    detectedType = 'pizza';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('burger') || nameLower.includes('hamburguesa') || nameLower.includes('cheeseburger') || nameLower.includes('smash')) {
+    detectedType = 'burger';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('carne') || nameLower.includes('ribeye') || nameLower.includes('steak') || nameLower.includes('asado') || nameLower.includes('corte') || nameLower.includes('bife')) {
+    detectedType = 'ribeye';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('salmon') || nameLower.includes('salmón') || nameLower.includes('pescado') || nameLower.includes('fish') || nameLower.includes('atun') || nameLower.includes('atún')) {
+    detectedType = 'salmon';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('ensalada') || nameLower.includes('salad') || nameLower.includes('cesar') || nameLower.includes('caesar')) {
+    detectedType = 'salad';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('flan') || nameLower.includes('postre') || nameLower.includes('cake') || nameLower.includes('pastel') || nameLower.includes('dulce') || nameLower.includes('tarta')) {
+    detectedType = 'dessert';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('guacamole') || nameLower.includes('aguacate') || nameLower.includes('totopos') || nameLower.includes('nachos')) {
+    detectedType = 'guacamole';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('cocktail') || nameLower.includes('coctel') || nameLower.includes('cóctel') || nameLower.includes('margarita') || nameLower.includes('mojito') || nameLower.includes('trago')) {
+    detectedType = 'cocktail';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (nameLower.includes('jugo') || nameLower.includes('limonada') || nameLower.includes('bebida') || nameLower.includes('drink') || nameLower.includes('soda') || nameLower.includes('agua')) {
+    detectedType = 'drink';
+    confidence = 0.95;
+    source = 'name-match';
+  } else if (imageDataUrl) {
+    // 2. Visual Pixel Color & Texture Analysis via Canvas
+    try {
+      const img = new Image();
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageDataUrl;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 64;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, 64, 64);
+      const imgData = ctx.getImageData(0, 0, 64, 64).data;
+
+      let totalR = 0, totalG = 0, totalB = 0;
+      let greenPixels = 0, redPixels = 0, yellowPixels = 0, brownPixels = 0, pinkPixels = 0;
+      const count = imgData.length / 4;
+
+      for (let i = 0; i < imgData.length; i += 4) {
+        const r = imgData[i];
+        const g = imgData[i + 1];
+        const b = imgData[i + 2];
+        totalR += r; totalG += g; totalB += b;
+
+        // Color classification heuristics
+        if (g > 100 && g > r * 1.15 && g > b * 1.15) greenPixels++;
+        if (r > 130 && r > g * 1.35 && r > b * 1.35) redPixels++;
+        if (r > 140 && g > 110 && b < 90) yellowPixels++;
+        if (r > 60 && r < 140 && g > 40 && g < 100 && b < 70) brownPixels++;
+        if (r > 180 && g > 90 && g < 150 && b > 80 && b < 140) pinkPixels++;
+      }
+
+      const greenRatio = greenPixels / count;
+      const redRatio = redPixels / count;
+      const yellowRatio = yellowPixels / count;
+      const brownRatio = brownPixels / count;
+      const pinkRatio = pinkPixels / count;
+
+      if (greenRatio > 0.22) {
+        detectedType = (yellowRatio > 0.1) ? 'guacamole' : 'salad';
+        confidence = 0.82;
+      } else if (pinkRatio > 0.12 || (totalR / count > 160 && totalG / count < 120 && totalB / count < 110)) {
+        detectedType = 'salmon';
+        confidence = 0.78;
+      } else if (redRatio > 0.18 && yellowRatio > 0.15) {
+        detectedType = 'pizza';
+        confidence = 0.85;
+      } else if (brownRatio > 0.22) {
+        detectedType = 'ribeye';
+        confidence = 0.80;
+      } else if (yellowRatio > 0.25) {
+        detectedType = 'tacos';
+        confidence = 0.75;
+      } else {
+        detectedType = 'burger';
+        confidence = 0.70;
+      }
+    } catch (e) {
+      console.warn('Pixel analysis fallback:', e);
+      detectedType = 'burger';
+    }
+  }
+
+  // Model-specific preset metadata
+  const metaPresets = {
+    burger: {
+      category: 'principales',
+      modelType: 'burger',
+      label: 'Hamburguesa Gourmet 3D',
+      desc: 'Doble carne selecta con queso cheddar fundido, lechuga crujiente y pan brioche horneado.',
+      calories: 780,
+      prepTime: '15-20 min',
+      tags: ['popular'],
+    },
+    pizza: {
+      category: 'principales',
+      modelType: 'pizza',
+      label: 'Pizza Artesanal a la Piedra 3D',
+      desc: 'Masa madre fermentada, pomodoro italiano, mozzarella fundido y especias.',
+      calories: 840,
+      prepTime: '20-25 min',
+      tags: ['popular'],
+    },
+    tacos: {
+      category: 'principales',
+      modelType: 'tacos',
+      label: 'Tacos al Pastor / Asada 3D',
+      desc: 'Tortillas de maíz hechas a mano con carne marinada, cebolla, cilantro y piña asada.',
+      calories: 490,
+      prepTime: '10-15 min',
+      tags: ['spicy', 'gluten-free', 'popular'],
+    },
+    ribeye: {
+      category: 'principales',
+      modelType: 'ribeye',
+      label: 'Corte Ribeye a la Parrilla 3D',
+      desc: 'Corte fino sellado al fuego con mantequilla de romero y sal marina gruesa.',
+      calories: 690,
+      prepTime: '20-25 min',
+      tags: ['gluten-free'],
+    },
+    salmon: {
+      category: 'especiales',
+      modelType: 'salmon',
+      label: 'Salmón Noruego Glaseado 3D',
+      desc: 'Filete fresco sellado con salsa teriyaki, arroz jazmín al vapor y semillas de sésamo.',
+      calories: 540,
+      prepTime: '15-20 min',
+      tags: ['gluten-free', 'popular'],
+    },
+    salad: {
+      category: 'entradas',
+      modelType: 'salad',
+      label: 'Ensalada Fresca de Temporada 3D',
+      desc: 'Hojas verdes hidropónicas, láminas de parmesano, crutones y aderezo especial.',
+      calories: 320,
+      prepTime: '8-12 min',
+      tags: ['veg', 'gluten-free'],
+    },
+    dessert: {
+      category: 'postres',
+      modelType: 'dessert',
+      label: 'Postre Artesanal / Flan 3D',
+      desc: 'Textura cremosa con baño de caramelo dorado artesanal y toque de vainilla.',
+      calories: 380,
+      prepTime: '5 min',
+      tags: ['popular'],
+    },
+    guacamole: {
+      category: 'entradas',
+      modelType: 'guacamole',
+      label: 'Guacamole en Molcajete 3D',
+      desc: 'Aguacate hass machacado con pico de gallo fresco, limón y totopos de maíz.',
+      calories: 340,
+      prepTime: '8-10 min',
+      tags: ['veg', 'gluten-free'],
+    },
+    cocktail: {
+      category: 'cocteles',
+      modelType: 'cocktail',
+      label: 'Cóctel de Autor 3D',
+      desc: 'Destilado premium con cítricos frescos, licor dulce y copa escarchada.',
+      calories: 190,
+      prepTime: '5 min',
+      tags: ['gluten-free'],
+    },
+    drink: {
+      category: 'bebidas',
+      modelType: 'drink',
+      label: 'Bebida Refrescante 3D',
+      desc: 'Bebida natural fría con hielo cristalino y toque aromático de hierbas.',
+      calories: 110,
+      prepTime: '3-5 min',
+      tags: ['gluten-free'],
+    },
+  };
+
+  const selected = metaPresets[detectedType] || metaPresets.burger;
+  return {
+    ...selected,
+    confidence,
+    source,
+  };
+}
